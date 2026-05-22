@@ -18,6 +18,8 @@ func main() {
 }
 
 // https://t.me/GO_Blc
+// https://t.me/GO_Blc
+// https://t.me/GO_Blc
 // goto
 // faltruni
 
