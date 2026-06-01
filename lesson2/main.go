@@ -10,7 +10,7 @@ func NewPaymentProcessor() *PaymentProcessor {
 
 // ProcessPayment обрабатывает платеж
 func (pp *PaymentProcessor) ProcessPayment(method string, amount float64) error {
-	if method != "карта" && method != "СБП" {
+	if method != "крипта" {
 		return ErrUnsupportedPaymentMethod
 	}
 
