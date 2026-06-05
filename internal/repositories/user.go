@@ -1,7 +1,8 @@
 package repositories
 
 import (
-	"NOTA/internal/models"
+	"HOTA/internal/models"
+	"strings"
 )
 
 var Users []models.User
@@ -12,7 +13,7 @@ func AppendUser(user models.User) {
 	user.ID = nextID
 	Users = append(Users, user)
 	nextID++
-	//Надо сделать переменную nextid = 1 и инкрементировать ее в AppendUser
+
 }
 
 // Фукция поиска по нику
@@ -27,20 +28,21 @@ func SersheNickname(nickname string) *models.User {
 	return nil
 }
 
-// // Поиск по стеку
-// func FindByStack(stack string) []User {
-// 	result := make([]User, 0)
+// Поиск по стеку
+func FindByStack(stack string) []models.User {
+	result := make([]models.User, 0)
 
-// 	for _, user := range users {
-// 		for _, steckITM := range user.Staсk {
-// 			if strings.EqualFold(steckITM, stack) {
-// 				result = append(result, user)
-// 			}
-// 		}
+	for _, user := range Users {
+		for _, steckITM := range user.Staсk {
+			if strings.EqualFold(steckITM, stack) {
+				result = append(result, user)
+				break
+			}
+		}
 
-// 	}
-// 	return result
-// }
+	}
+	return result
+}
 
 // Поиск по ID
 func SersheID(id int) *models.User {
@@ -79,4 +81,21 @@ func DeleteUser(id int) bool {
 		}
 	}
 	return false
+}
+
+// статистика (количество пользователей всего)
+func CountUser() int{
+   return len(Users)
+}
+
+// статистика (количество пользователей по ролям)
+func CountByRole() map[string]int {
+    rezult := make(map[string]int)  //Backend: 2  Frontend: 1
+
+	for _, user := range Users {
+      rezult[user.Role]++
+	   
+	}
+	
+return rezult
 }

@@ -1,29 +1,36 @@
 package main
 
 import (
-	"NOTA/internal/models"
-	"NOTA/internal/repositories"
+	"HOTA/internal/models"
+	"HOTA/internal/repositories"
 	"fmt"
+
+	"strings"
 )
 
 func main() {
-	fmt.Println(repositories.Users)
-	for {
-		fmt.Println("Введите действие")
 
+	for {
+		fmt.Println("​-----------------------------------------")
+		fmt.Println()
+		fmt.Println("Введите действие:")
 		fmt.Println("1. Добавить пользователя")
 		fmt.Println("2. Поиск по нику")
 		fmt.Println("3. Поиск по id")
-		fmt.Println("4. ​Вывести всех пользователей")
-		fmt.Println("5. Обновление данных")
-		fmt.Println("6. Удалить пользователя")
+		fmt.Println("4. Поиск по стеку")
+		fmt.Println("5. ​Вывести всех пользователей")
+		fmt.Println("6. Обновление данных")
+		fmt.Println("7. Удалить пользователя")
+		fmt.Println("8. Статистика")
+		fmt.Println()
+		fmt.Println("​-----------------------------------------")
 
 		var action int
 		fmt.Scan(&action)
 		fmt.Println()
 
 		switch action {
-		case 1:
+		case 1: // Добавить пользователя
 			user := models.User{}
 
 			fmt.Print("Ник: ")
@@ -32,13 +39,16 @@ func main() {
 			fmt.Print("Роль: ")
 			fmt.Scan(&user.Role)
 
-			// fmt.Print("Стек: ")
-			// fmt.Scan(&user.Staсk)
+			var stack string
+			fmt.Print("Стек (через запятую): ")
+			fmt.Scan(&stack)
 
-			repositories.AppendUser(user) //nextID = 1
+			user.Staсk = strings.Split(stack, ",")
+
+			repositories.AppendUser(user)
 			fmt.Println("Пользователь создан")
 			fmt.Println()
-		case 2:
+		case 2: // Поиск по нику
 			var nickname string
 			fmt.Println("Введите Ник: ")
 			fmt.Scan(&nickname)
@@ -50,7 +60,7 @@ func main() {
 			}
 			fmt.Println(*user)
 
-		case 3:
+		case 3: // Поиск по ID
 
 			var id int
 			fmt.Println("Ведите ID")
@@ -63,14 +73,29 @@ func main() {
 				continue
 			}
 			fmt.Println(*user)
+		case 4: // Поиск по стеку
+			var stack string
+			fmt.Println("Введите стек: ")
+			fmt.Scan(&stack)
 
-		case 4:
-			users := repositories.GetAllUsers()
+			users := repositories.FindByStack(stack)
+
+			if len(users) == 0 {
+				fmt.Println("Ничего не найдено")
+			}
 			for _, user := range users {
-				fmt.Printf("ID: %d,\nНик: %s,\nРоль: %s\n", user.ID, user.Nickname, user.Role)
+				fmt.Printf("ID: %d,\nНик: %s,\nРоль: %s,\nСтек: %s\n", user.ID, user.Nickname, user.Role, strings.Join(user.Staсk, ","))
+
 			}
 
-		case 5:
+		case 5: // Вывести всех пользователей
+			users := repositories.GetAllUsers()
+			for _, user := range users {
+				// strings.Join(user.Staсk, ",") //Преобразовываем из слайса в строку
+				fmt.Printf("ID: %d,\nНик: %s,\nРоль: %s,\nСтек: %s\n", user.ID, user.Nickname, user.Role, strings.Join(user.Staсk, ","))
+			}
+
+		case 6: // Обновление данных
 
 			var id int
 			fmt.Println("Введите ID")
@@ -102,7 +127,7 @@ func main() {
 				fmt.Println("Пользовтель успешно обновлен")
 			}
 
-		case 6:
+		case 7: // Удаление пользователя
 			var id int
 			fmt.Println("Введите ID")
 			fmt.Scan(&id)
@@ -113,6 +138,16 @@ func main() {
 				fmt.Printf("Такого пользователя с id: %d не существует", id)
 			} else {
 				fmt.Println("Пользователь успешно удален")
+			}
+		case 8: //статистика
+			count := repositories.CountUser()
+			fmt.Printf("Количество зарегистрнированных пользователей: %d\n", count)
+
+			stastRoll := repositories.CountByRole()
+			fmt.Println("Статистика по ролям:")
+
+			for role, count := range stastRoll {
+				fmt.Printf("%s: %d\n", role, count)
 			}
 
 		default:
