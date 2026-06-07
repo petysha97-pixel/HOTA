@@ -11,18 +11,18 @@ func UpdateUser() error {
 	fmt.Println("Введите ID")
 	fmt.Scan(&id)
 
-	user := repositories.SersheID(id)
+	user := repositories.FindUserByID(id)
 	if user == nil {
 		return fmt.Errorf("Такого пользователя с id: %d не существует", id)
 	}
 
-	var nik string
+	var nickname string
 	fmt.Printf("Введите имя [%s]\n", user.Nickname)
-	fmt.Scan(&nik)
+	fmt.Scan(&nickname)
 
-	var rol string
+	var role string
 	fmt.Printf("Введите новую роль [%s]\n", user.Role)
-	fmt.Scan(&rol)
+	fmt.Scan(&role)
 
 	var gh string
 	fmt.Printf("Введите GitHub [%s]\n", user.GitHub)
@@ -32,15 +32,15 @@ func UpdateUser() error {
 	fmt.Printf("Введите Telegram [%s]\n", user.Telegram)
 	fmt.Scan(&tg)
 
-	var stats string
+	var status string
 	fmt.Printf("Введите статус [%s]\n", user.Status)
-	fmt.Scan(&stats)
+	fmt.Scan(&status)
 
-	user.Nickname = nik
-	user.Role = rol
+	user.Nickname = nickname
+	user.Role = role
 	user.GitHub = gh
 	user.Telegram = tg
-	user.Status = stats
+	user.Status = status
 
 	ok := repositories.UpdateUser(*user)
 

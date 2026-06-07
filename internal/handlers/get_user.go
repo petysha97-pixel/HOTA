@@ -7,13 +7,13 @@ import (
 	"strings"
 )
 
-// GetUserByNik поиск по нику
-func GetUserByNik() {
+// GetUserByNickname поиск по нику
+func GetUserByNickname() {
 	var nickname string
 	fmt.Println("Введите Ник: ")
 	fmt.Scan(&nickname)
 
-	user := repositories.SersheNickname(nickname)
+	user := repositories.FindUserByNickname(nickname)
 	if user == nil {
 		fmt.Println("Такого пользователя не существует")
 		return
@@ -21,13 +21,13 @@ func GetUserByNik() {
 	printer.PrintUser(*user)
 }
 
-// GetUserByIDПоиск по ID
+// GetUserByID Поиск по ID
 func GetUserByID() {
 	var id int
-	fmt.Println("Ведите ID")
+	fmt.Println("Введите ID")
 	fmt.Scan(&id)
 
-	user := repositories.SersheID(id)
+	user := repositories.FindUserByID(id)
 
 	if user == nil {
 		fmt.Printf("Такого пользователя с id: %d не существует", id)
@@ -36,8 +36,8 @@ func GetUserByID() {
 	printer.PrintUser(*user)
 }
 
-// SerheUserByStack Поиск по стеку
-func SerheUserByStack() {
+// FindUsersByStack Поиск по стеку
+func GetUsersByStack() {
 	var stack string
 	fmt.Println("Введите стек: ")
 	fmt.Scan(&stack)
@@ -48,12 +48,18 @@ func SerheUserByStack() {
 		fmt.Println("Ничего не найдено")
 	}
 	for _, user := range users {
-		fmt.Printf("ID: %d,\nНик: %s,\nРоль: %s,\nСтек: %s\n", user.ID, user.Nickname, user.Role, strings.Join(user.Staсk, ","))
-
+		fmt.Printf(
+			"ID: %d,\nНик: %s,\nРоль: %s,\nСтек: %s\n",
+			user.ID,
+			user.Nickname,
+			user.Role,
+			strings.Join(user.Staсk, ","),
+		)
 	}
 }
 
-func DeleteIserID() {
+// DeleteUserByID удаление пользователя по ID
+func DeleteUserByID() {
 	var id int
 	fmt.Println("Введите ID")
 	fmt.Scan(&id)
