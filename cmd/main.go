@@ -19,44 +19,33 @@ func Menu() int {
 
 func main() {
 
-	for {
-		action := Menu()
-
-		switch action {
-		case 1: // Добавить пользователя
-			handlers.CreateUser()
-
-		case 2: // Поиск по нику
-			handlers.GetUserByNik()
-
-		case 3: // Поиск по ID
-
-			handlers.GetUserByID()
-
-		case 4: // Поиск по стеку
-			handlers.SerheUserByStack()
-
-		case 5: // Вывести всех пользователей
-			handlers.ListUser()
-
-		case 6: // Обновление данных
+	actions := []func(){
+		func() { handlers.CreateUser() },
+		func() { handlers.GetUserByNik() },
+		func() { handlers.GetUserByID() },
+		func() { handlers.SerheUserByStack() },
+		func() {
 			err := handlers.UpdateUser()
 			if err != nil {
 				fmt.Println(err.Error())
-				continue
+				return
 			}
 
 			fmt.Println("Пользователь успешно обновлен")
-		case 7: // Удаление пользователя
-			handlers.DeleteIserID()
+		},
+		func() { handlers.DeleteIserID() },
+		func() { handlers.StatUser() },
+	}
 
-		case 8: //статистика
-			handlers.StatUser()
+	for {
+		action := Menu() + 1
 
-		default:
+		if action > 0 && action <= len(actions) {
+			actions[action-1]()
+		} else {
+
 			fmt.Printf("Данного выбора: %d не существует", action)
 		}
-
 	}
 
 }
