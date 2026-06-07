@@ -2,18 +2,18 @@ package handlers
 
 import (
 	"HOTA/internal/repositories"
-	"errors"
 	"fmt"
 )
 
-func UpdateUser() error {
+func UpdateUser() {
 	var id int
 	fmt.Println("Введите ID")
 	fmt.Scan(&id)
 
 	user := repositories.SersheID(id)
 	if user == nil {
-		return fmt.Errorf("Такого пользователя с id: %d не существует", id)
+		fmt.Printf("Пользователь с id: %d не найден\n", id)
+		return
 	}
 
 	var nik string
@@ -45,8 +45,9 @@ func UpdateUser() error {
 	ok := repositories.UpdateUser(*user)
 
 	if ok == false {
-		return errors.New("Данного пользователя не удалось обновить")
+		fmt.Printf("Пользователь с id: %d не найден\n", id)
+		return
 	}
 
-	return nil
+	fmt.Println("Пользователь успешно обновлен")
 }
