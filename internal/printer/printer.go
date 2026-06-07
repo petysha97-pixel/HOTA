@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-// PrintMeny - вывод меню в терминал
-func PrintMeny() {
+// PrintMenu - вывод меню в терминал
+func PrintMenu() {
 	fmt.Println("​-----------------------------------------")
 	fmt.Println()
 	fmt.Println("Введите действие:")

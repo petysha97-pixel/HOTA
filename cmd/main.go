@@ -8,7 +8,7 @@ import (
 
 func Menu() int {
 	fmt.Println()
-	printer.PrintMeny()
+	printer.PrintMenu()
 	fmt.Println()
 
 	var action int
@@ -27,17 +27,16 @@ func main() {
 			handlers.CreateUser()
 
 		case 2: // Поиск по нику
-			handlers.GetUserByNik()
+			handlers.GetUserByNickname()
 
 		case 3: // Поиск по ID
-
 			handlers.GetUserByID()
 
 		case 4: // Поиск по стеку
-			handlers.SerheUserByStack()
+			handlers.GetUsersByStack()
 
 		case 5: // Вывести всех пользователей
-			handlers.ListUser()
+			handlers.ListUsers()
 
 		case 6: // Обновление данных
 			err := handlers.UpdateUser()
@@ -48,10 +47,10 @@ func main() {
 
 			fmt.Println("Пользователь успешно обновлен")
 		case 7: // Удаление пользователя
-			handlers.DeleteIserID()
+			handlers.DeleteUserByID()
 
 		case 8: //статистика
-			handlers.StatUser()
+			handlers.Statistics()
 
 		default:
 			fmt.Printf("Данного выбора: %d не существует", action)
