@@ -44,7 +44,7 @@ func readUserData() error {
 
 // Добавляем нового пользователя в слайс пользователей
 func AppendUser(user models.User) {
-	user.ID = len(Users.Data)+1
+	user.ID = Users.Data[len(Users.Data)-1].ID + 1 // ID последнего добавленного пользователя +1
 	Users.Data = append(Users.Data, user)
 	nextID++
 	err := updateUserData()
@@ -121,6 +121,7 @@ func DeleteUser(id int) bool {
 			return true
 		}
 	}
+	Users.Count = len(Users.Data)
 	err := updateUserData()
 	if err != nil {
 		log.Fatal(err)
