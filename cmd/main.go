@@ -2,8 +2,10 @@ package main
 
 import (
 	"HOTA/internal/handlers"
+	"HOTA/internal/handlers/handlers_http"
 	"HOTA/internal/printer"
 	"fmt"
+	"net/http"
 )
 
 func Menu() int {
@@ -18,6 +20,10 @@ func Menu() int {
 }
 
 func main() {
+	http.HandleFunc("/user", handlers_http.NewUser)
+	go func() {
+		http.ListenAndServe(":8080", nil)
+	}()
 
 	for {
 		action := Menu()

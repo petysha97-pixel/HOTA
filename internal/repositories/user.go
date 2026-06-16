@@ -9,11 +9,13 @@ var Users []models.User
 var nextID = 1
 
 // Добавляем нового пользователя в слайс пользователей
-func AppendUser(user models.User) {
+func AppendUser(user models.User) models.User{
 	user.ID = nextID
 	Users = append(Users, user)
 	nextID++
 
+
+	return user
 }
 
 // Фукция поиска по нику
