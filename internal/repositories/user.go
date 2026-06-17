@@ -35,7 +35,7 @@ func FindByStack(stack string) []models.User {
 	result := make([]models.User, 0)
 
 	for _, user := range Users {
-		for _, steckITM := range user.Staсk {
+		for _, steckITM := range user.Stack {
 			if strings.EqualFold(steckITM, stack) {
 				result = append(result, user)
 				break

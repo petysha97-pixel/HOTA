@@ -48,7 +48,7 @@ func SerheUserByStack() {
 		fmt.Println("Ничего не найдено")
 	}
 	for _, user := range users {
-		fmt.Printf("ID: %d,\nНик: %s,\nРоль: %s,\nСтек: %s\n", user.ID, user.Nickname, user.Role, strings.Join(user.Staсk, ","))
+		fmt.Printf("ID: %d,\nНик: %s,\nРоль: %s,\nСтек: %s\n", user.ID, user.Nickname, user.Role, strings.Join(user.Stack, ","))
 
 	}
 }

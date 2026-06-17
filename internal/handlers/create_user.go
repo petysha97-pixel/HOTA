@@ -3,10 +3,13 @@ package handlers
 import (
 	"HOTA/internal/models"
 	"HOTA/internal/repositories"
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 )
 
+// регистрация нашего юзера через терминал
 func CreateUser() {
 	user := models.User{}
 
@@ -19,7 +22,7 @@ func CreateUser() {
 	var stack string
 	fmt.Print("Стек (через запятую): ")
 	fmt.Scan(&stack)
-	user.Staсk = strings.Split(stack, ",")
+	user.Stack = strings.Split(stack, ",")
 
 	fmt.Print("GitHub: ")
 	fmt.Scan(&user.GitHub)
@@ -28,7 +31,11 @@ func CreateUser() {
 	fmt.Scan(&user.Telegram)
 
 	fmt.Print("Статус: ")
-	fmt.Scan(&user.Status)
+	fmt.Scanln() // очищаем остаток после предыдущего Scan
+	reader := bufio.NewReader(os.Stdin)
+	status, _ := reader.ReadString('\n')
+	user.Status = strings.TrimSpace(status)
+
 	repositories.AppendUser(user)
 	fmt.Println("Пользователь создан")
 	fmt.Println()
@@ -56,7 +63,8 @@ func ListUser() {
 
 		for _, user := range users {
 			// strings.Join(user.Staсk, ",") //Преобразовываем из слайса в строку
-			fmt.Printf("ID: %d,\nНик: %s,\nРоль: %s,\nСтек: %s, \nГитхаб: %s, \nTG: %s, \nСтатус: %s", user.ID, user.Nickname, user.Role, strings.Join(user.Staсk, ","), user.GitHub, user.Telegram, user.Status)
+			fmt.Printf("ID: %d,\nНик: %s,\nРоль: %s,\nСтек: %s, \nГитхаб: %s, \nTG: %s, \nСтатус: %s\n\n", user.ID, user.Nickname, user.Role, strings.Join(user.Stack, ","), user.GitHub, user.Telegram, user.Status)
 		}
+
 	}
 }

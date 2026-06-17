@@ -30,7 +30,7 @@ func PrintUser(user models.User) {
 	fmt.Printf("Роль: %s\n", user.Role)
 
 	fmt.Println("Стек:")
-	for _, stek := range user.Staсk {
+	for _, stek := range user.Stack {
 		fmt.Printf("%s\n", stek)
 	}
 
