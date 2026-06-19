@@ -101,3 +101,13 @@ func CountByRole() map[string]int {
 
 	return rezult
 }
+
+//фукция которя отдает последнего пользователя 
+func LastUser() (models.User, bool) {
+
+	if len(Users) == 0 {
+		return models.User{}, false
+	}
+
+	return Users[len(Users)-1], true
+}

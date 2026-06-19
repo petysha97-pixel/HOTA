@@ -20,7 +20,11 @@ func Menu() int {
 }
 
 func main() {
+	http.HandleFunc("/", handlers_http.Home)
 	http.HandleFunc("/user", handlers_http.NewUser)
+	http.HandleFunc("/Profile", handlers_http.Profile)
+	
+
 	go func() {
 		http.ListenAndServe(":8080", nil)
 	}()
