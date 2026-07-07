@@ -11,6 +11,25 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// 1. Создаем функцию Middleware для CORS
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Разрешаем фронтенду доступ
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// Если браузер делает предварительную проверку (Preflight request)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// Передаем запрос дальше в наши http.HandleFunc
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 
 	db, err := sql.Open("sqlite", "../db.db")
@@ -25,14 +44,18 @@ func main() {
 	models.UserDB = db
 	fmt.Println("Connected to SQLite")
 
-	http.HandleFunc("/", handlers.Resistr)
+	http.HandleFunc("/profile/{id}", handlers.GetUser)
 	http.HandleFunc("/user", handlers.NewUser)
-	http.HandleFunc("/profile/{id}", handlers.HOME)
 	http.HandleFunc("/search", handlers.SearchUsers)
 
 	// http.HandleFunc("/profile", profile.Profile)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// 2. Получаем стандартный роутер net/http
+	defaultMux := http.DefaultServeMux
+
+	// 3. Оборачиваем весь роутер в наше CORS Middleware
+	fmt.Println("Сервер запущен: 8080")
+	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(defaultMux)))
 
 }
 
