@@ -11,11 +11,12 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// Поэтому на бэкенде обязательно нужно делать проверку прав (авторизацию): имеет ли право текущий вошедший пользователь смотреть данные профиля с этим ID.
 // 1. Создаем функцию Middleware для CORS
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Разрешаем фронтенду доступ
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Origin", "*") //* - разрешен доступ со всех доменов
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
@@ -44,8 +45,8 @@ func main() {
 	models.UserDB = db
 	fmt.Println("Connected to SQLite")
 
-	http.HandleFunc("/profile/{id}", handlers.GetUser)
 	http.HandleFunc("/user", handlers.NewUser)
+	http.HandleFunc("/profile/{id}", handlers.GetUser)
 	http.HandleFunc("/search", handlers.SearchUsers)
 
 	// http.HandleFunc("/profile", profile.Profile)
@@ -58,6 +59,11 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(defaultMux)))
 
 }
+
+
+// ЗАДАЧИ
+// 1. написать 2 функции для уникальности логина и никнейма 
+// 2. Прописать логику сохранения стека в БД + будем брать из БД и отображать на главной странице
 
 // sql.Open - db, err := sql.Open("sqlite", "app.db") Открывает БД.
 

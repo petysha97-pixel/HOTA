@@ -1,23 +1,30 @@
 package models
 
-// import "encoding/json"
+import (
+	"database/sql"
+	"time"
+)
 
 // Стуктура нашего пользователя
 type User struct {
+	ID         int      `json:"id"`
+	Login      string   `json:"login"`
+	Password   string   `json:"password"`
+	Nickname   string   `json:"nickname"`
+	Rolle      string   `json:"rolle"`
+	Stack      []string `json:"stack"`
+	Creat_add  time.Time
+	Update_add time.Time
+}
+
+
+// DTO для ответа (без пароля)
+type UserResponse struct {
 	ID       int      `json:"id"`
 	Nickname string   `json:"nickname"`
-	Role     string   `json:"role"`
+	Rolle    string   `json:"rolle"`
 	Stack    []string `json:"stack"`
-	GitHub   string   `json:"github"`   //ссылка гитхаб json
-	Telegram string   `json:"telegram"` //ссылка тг json
-	Status   string   `json:"status"`   //в сети или нет json
-
 }
 
 
-//возвращаемая струкрута с ошибками
-type Registration_fail struct {
-	StatusGlobal string `json:"statusglobal"`
-	Error []string  `json:"error"`
-
-}
+var UserDB *sql.DB
