@@ -3,11 +3,12 @@ package handlers
 import (
 	"HOTA/internal/models"
 	"HOTA/internal/repositories"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // регистрация +валидация пользователей через POST запросы
@@ -54,8 +55,13 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//После валидации хешируем пооль + солим
-		passwordHash := md5.Sum([]byte(user.Password + "salt"))
-		user.Password = fmt.Sprintf("%x", passwordHash)
+		hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "ошибка хеширования пароля")
+			return
+		}
+		user.Password = string(hash)
 
 		user, err = repositories.AppendUser(user) //сохраняем пользовтеля в БД
 		fmt.Println(err)
