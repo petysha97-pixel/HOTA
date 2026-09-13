@@ -56,12 +56,13 @@ func GetStacksByUserID(id int) ([]models.Stack, error){
 	for rows.Next() {
   	var stack models.Stack
 	err := rows.Scan(&stack.ID, &stack.Name)
-    if err != nil {
+    if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("ошибка записи стка в структуру: %w", err)
 	}
 
 	stacks = append(stacks, stack)
 	}
+
 
 	return stacks, nil
 }

@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"HOTA/internal/models"
+	"database/sql"
 	"fmt"
 )
 
@@ -26,18 +27,25 @@ func UpdateUser(user models.User, id int) (*models.User, error) {
 func GetUsersByID(id int) (*models.User, error) {
 
 	var user models.User
-
-	qweri := "SELECT id, Email, Nickname, Rolle FROM users WHERE id = ?"
+    var about sql.NullString
+	qweri := "SELECT id, Email, Nickname, Rolle, about FROM users WHERE id = ?"
 
 	err := models.UserDB.QueryRow(qweri, id).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Nickname,
 		&user.Rolle,
+		&about,
 	)
 
 	if err != nil {
 		return nil, fmt.Errorf("Пользователя с айди %d не существует: %w", id, err)
+	}
+
+	if about.Valid {
+		user.About = about.String
+	} else {
+		user.About = ""
 	}
 
 	return &user, nil

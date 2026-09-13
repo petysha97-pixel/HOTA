@@ -1,4 +1,4 @@
-module HOTA
+module НОТА
 
 go 1.25.0
 

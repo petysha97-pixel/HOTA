@@ -8,30 +8,20 @@ import (
 	// "crypto/md5"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 )
 
-// регистрация +валидация пользователей через POST запросы
+// регистрация + валидация пользователей через POST запросы
 func NewUser(w http.ResponseWriter, r *http.Request) {
 
 	var user models.User
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Не верные данные 1 ")
+	//парсим
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "Неверные данные", http.StatusBadRequest)
 		return
 	}
-
-	err = json.Unmarshal(body, &user)
-	if err != nil {
-
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Не верные данные 2")
-		return
-	}
+	defer r.Body.Close()
 	fmt.Println(user)
 
 	//валидиреум пользователя
@@ -50,6 +40,7 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 		w.Write(data)
 		return
 	}
+
 	//хешируем + солим пароль
 	newpassword, err := service.Hash_password(user.Password)
 	if err != nil {
@@ -60,7 +51,7 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Context-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(statys)
 		return
 
@@ -74,8 +65,9 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 			StatusGlobal: "Регистрация не успешна",
 			Error:        err,
 		}
-		w.Header().Set("Context-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(status)
+		return
 	}
 
 	jwtDTO, err := service.CreatJWT(user.ID)
@@ -87,6 +79,6 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println(jwtDTO)
-	w.Header().Set("Context-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(jwtDTO)
 }

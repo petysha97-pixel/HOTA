@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+//показывает всех разработчиков 
 func GetAllUser(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet {
@@ -39,7 +40,7 @@ func GetAllUser(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	w.Header().Set("Context-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(usersDTO)
 
 }

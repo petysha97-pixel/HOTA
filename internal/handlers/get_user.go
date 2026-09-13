@@ -3,10 +3,10 @@ package handlers
 import (
 	"HOTA/internal/models"
 	"HOTA/internal/repositories"
+	"HOTA/internal/service"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
 // получаем нашего пользователя для отображения данных в главном меню
@@ -17,28 +17,16 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
-	// Достаем userID из контекста запроса
-	// r.Context().Value возвращает тип interface{}, поэтому приводим его к string через .(string)
-	userID, ok := r.Context().Value("userID").(string)
-	if !ok {
-		http.Error(w, "Ошибка сервера: ID пользователя не найден", http.StatusInternalServerError)
-		return
-	}
-
-	
-
-	id, err := strconv.Atoi(userID)
+	userID, err := service.ContextUserIDValid(r)
 	if err != nil {
-		http.Error(w, "Некорректный id", http.StatusNotFound)
-		fmt.Printf("Не получилось конвертировать строку в число: %s", userID)
+		http.Error(w, "Не авторизован", http.StatusUnauthorized)
 		return
 	}
 
 	// Получаем юзера
-	user := repositories.Get_userdb(id)
+	user := repositories.Get_userdb(userID)
 	// Получаем его стеки
-	stack, err := repositories.GetStacksByUserID(id)
+	stack, err := repositories.GetStacksByUserID(userID)
 	if err != nil {
 		fmt.Printf("Ошибка получения стеков пользователя %v", err)
 		http.Error(w, "Ошибка получения стеков пользователя", http.StatusInternalServerError)
@@ -52,6 +40,6 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		Stack:    stack,
 	}
 
-	w.Header().Set("Context-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(reposonse)
 }

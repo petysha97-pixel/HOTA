@@ -1,0 +1,25 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+args_bin = []
+bin = "./tmp/main.exe"
+
+cmd = "go build -o ./tmp/main.exe ./main"
+delay = 1000
+
+exclude_dir = ["assets", "tmp", "vendor", "web"] 
+exclude_regex = ["_test.go"]
+exclude_unchanged = false
+follow_symlink = false
+include_dir = ["main", "internal"]
+include_ext = ["go"]
+kill_delay = "0s"
+send_interrupt = false
+stop_on_error = true
+
+[log]
+time = false
+
+[misc]
+clean_on_exit = true

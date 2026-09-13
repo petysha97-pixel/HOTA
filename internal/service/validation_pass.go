@@ -43,7 +43,7 @@ func ValidateUpdatePass(id int, oldPass, newPass string) error {
 	}
 
 	//Сравнение нового пароля со старым
-	if hashNewPass == storedHash {
+	if hashNewPass == storedHash {                      //проверить на птоснный false, тк при хешировании соль разная
 		return errors.New("новый пароль не может совпадать с текущим")
 	}
 

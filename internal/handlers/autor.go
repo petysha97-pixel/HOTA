@@ -5,28 +5,18 @@ import (
 	"HOTA/internal/service"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 )
 
 func Auth(w http.ResponseWriter, r *http.Request) {
 	var authDTO models.AuotIn
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Не верные данные 1 ")
+	//парсим
+	if err := json.NewDecoder(r.Body).Decode(&authDTO); err != nil {
+		http.Error(w, "Неверные данные", http.StatusBadRequest)
 		return
 	}
-
-	err = json.Unmarshal(body, &authDTO)
-	if err != nil {
-		fmt.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Не верные данные 2")
-		return
-	}
+	defer r.Body.Close()
 
 	//Получаем текущий email и хеш пароля из БД
 	var Email string
@@ -34,14 +24,13 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 	var id int
 
 	query := "SELECT id, Email, Password FROM users WHERE Email = ?"
-	err = models.UserDB.QueryRow(query, authDTO.Email).Scan(&id, &Email, &Hashpass)
-	if err != nil {
+	if err := models.UserDB.QueryRow(query, authDTO.Email).Scan(&id, &Email, &Hashpass); err != nil {
 		http.Error(w, "Данный email не зарегистрирован", http.StatusBadRequest)
+		return
 	}
 
 	//сравниванием пароли
-	err = service.CheckPassword(Hashpass, authDTO.Password)
-	if err != nil {
+	if err := service.CheckPassword(Hashpass, authDTO.Password); err != nil {
 		w.WriteHeader(401)
 		fmt.Fprintf(w, "Пароли не совпадают")
 		return

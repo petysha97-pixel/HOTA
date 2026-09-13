@@ -16,13 +16,13 @@ func SearcheUsers(w http.ResponseWriter, r *http.Request) {
 
    if limit == "" {
 		limit = "15"
-
+       
 	}
 
 
 	if query == "" {
 		http.Error(w, "Параметр query пустой", http.StatusBadRequest) //400 не верный запрос
-
+      return
 	}
 
 	users, err := repositories.SearcheUsersBD(query, limit)
@@ -31,12 +31,14 @@ func SearcheUsers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка поиска пользователей", http.StatusInternalServerError)
 		return
 	}
+ 
+	if len(users) == 0 {
+		http.Error(w, "По запросу ничего не найдено", http.StatusInternalServerError)
+		return
+	}
 
 
 
-
-
-	
 	var usersDTO = make([]models.UserResponse, 0, len(users))
 	for _, user := range users {
 		//берём стеки
@@ -54,7 +56,7 @@ func SearcheUsers(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	w.Header().Set("Context-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(usersDTO)
 
 }

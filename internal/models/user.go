@@ -13,6 +13,7 @@ type User struct {
 	Nickname   string `json:"nickname"`
 	Rolle      string `json:"rolle"`
 	Stack      []int  `json:"stack"`
+	About      string `json:"about"`
 	Creat_add  time.Time
 	Update_add time.Time
 }
@@ -24,6 +25,7 @@ type UserResponse struct {
 	Nickname string  `json:"nickname"`
 	Rolle    string  `json:"rolle"`
 	Stack    []Stack `json:"stack"`
+	About    string  `json:"about"`
 }
 
 type Stack struct {
@@ -61,3 +63,21 @@ type AuotIn struct {
 type AuotOut struct {
 	Token string `json:"token"`
 }
+
+//описание о себе
+type Description struct {
+	ID          int    `json:"id"`
+	Description string `json:"description"`
+}
+
+
+
+type StackUser struct {
+	IDStack int `json:"id_stack"`
+}
+
+type UpdateStacks struct {
+    StackID []int `json:"stack_id"`
+}
+
+

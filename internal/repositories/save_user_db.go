@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"HOTA/internal/models"
-	
 )
 
 // AppendUser добавляет нового пользователя в БД и возвращает его же с ID
@@ -25,7 +24,7 @@ func AppendUser(user models.User) (models.User, error) {
 	// 		return models.User{}, err
 	// 	}
 	// }
-	
+
 	userSQL := `
 	INSERT INTO users (
 		Email,
