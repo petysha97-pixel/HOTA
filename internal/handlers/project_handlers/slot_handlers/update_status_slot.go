@@ -19,79 +19,110 @@ func UpdateStatusSlot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// парсим тело
-	var slot models.Slot
-	if err := json.NewDecoder(r.Body).Decode(&slot); err != nil {
+	var bodySlot models.Slot
+	if err := json.NewDecoder(r.Body).Decode(&bodySlot); err != nil {
 		http.Error(w, "Неверные данные", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 
-	// проверяем, существет ли данный проект вообще
-	projectDa, err := projectRepo.GetProjectByID(slot.ProjectID)
-	if slot.ProjectID != projectDa.ID {
-		http.Error(w, "данного проекта не существует", http.StatusNotFound)
-		return
-	}
+	// достаём слот из БД
+	slotData, err := slotRepo.GetSlotByID(bodySlot.ID)
 	if err != nil {
-		http.Error(w, "Комната не найдена", http.StatusNotFound)
+		http.Error(w, "Слот не найден", http.StatusNotFound)
 		return
 	}
 
-	NewSlot, err := slotRepo.GetSlotByID(slot.ID)
+	// достаём проект этого слота
+	projectData, err := projectRepo.GetProjectByID(slotData.ProjectID)
 	if err != nil {
-		http.Error(w, "слот не найден", 500)
+		http.Error(w, "Проект не найден", http.StatusNotFound)
 		return
 	}
 
-	project, err := projectRepo.GetProjectByID(NewSlot.ProjectID)
+	// статус слота меняет только создатель проекта
+	if userID != projectData.OwnerID {
+		http.Error(w, "Только создатель может менять статус слота", http.StatusForbidden)
+		return
+	}
+
+	// в завершённом проекте слоты не трогаем
+	if projectData.Status == "finished" {
+		http.Error(w, "Проект завершён, слоты менять нельзя", http.StatusConflict)
+		return
+	}
+
+	// нельзя поставить тот же статус
+	if slotData.Status == bodySlot.Status {
+		http.Error(w, "Статус уже установлен", http.StatusConflict)
+		return
+	}
+
+	// есть ли принятая заявка на слот
+	hasApproved, err := slotRepo.ApprovedAplecation(slotData.ID)
 	if err != nil {
-		http.Error(w, "ошибка получение проекта у данного слота", 500)
+		http.Error(w, "Ошибка проверки заявки", http.StatusInternalServerError)
 		return
 	}
 
-	if userID != project.OwnerID {
-		http.Error(w, "столько Создатель имеет право менять статус слота", 500)
-		return
-	}
-
-	if project.Status == "finished" {
-		http.Error(w, "смена статуса не доступна, когда проект завершен", 500)
-		return
-	}
-
-	// все статусы слота
-	if NewSlot.Status != "open" && NewSlot.Status != "close" && NewSlot.Status != "done" {
-		http.Error(w, "Допустимые статусы: open, close, done", 500)
-		return
-	}
-
-	switch NewSlot.Status {
+	// проверяем переход по текущему статусу
+	switch slotData.Status {
 	case "open":
-		if slot.Status == "done" {
-			http.Error(w, "Нельзя перейти из open в done, сначала закройте слот (closed)", 500)
+		// из open только в close и только при принятой заявке
+		if bodySlot.Status != "close" {
+			http.Error(w, "Из open можно только в close", http.StatusConflict)
 			return
 		}
+		if !hasApproved {
+			http.Error(w, "Нельзя закрыть слот: нет принятой заявки", http.StatusConflict)
+			return
+		}
+
+	case "close":
+		if bodySlot.Status == "open" {
+			// переоткрытие всегда, принятую заявку снимаем
+		} else if bodySlot.Status == "done" {
+			if !hasApproved {
+				http.Error(w, "Нельзя выполнить слот: нет принятой заявки", http.StatusConflict)
+				return
+			}
+		} else {
+			http.Error(w, "Из close можно в open или done", http.StatusConflict)
+			return
+		}
+
 	case "done":
-		if slot.Status != "done" {
-			http.Error(w, "Нельзя изменить статус выполненного слота", http.StatusBadRequest)
+		http.Error(w, "Слот выполнен, статус не меняется", http.StatusConflict)
+		return
+
+	default:
+		http.Error(w, "Неизвестный статус слота", http.StatusBadRequest)
+		return
+	}
+
+	// при переоткрытии снимаем принятую заявку
+	if slotData.Status == "close" && bodySlot.Status == "open" {
+		err = slotRepo.ResetApprovedApplication(slotData.ID)
+		if err != nil {
+			http.Error(w, "Ошибка снятия заявки", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	_, err = slotRepo.UpdateSlotByID(NewSlot.ID, slot.Status)
+	// обновляем статус в БД
+	bodySlot2, err := slotRepo.UpdateSlotByID(slotData.ID, bodySlot.Status)
 	if err != nil {
-		http.Error(w, "ошибка обновления статуса", 500)
+		http.Error(w, "Ошибка обновления статуса", http.StatusInternalServerError)
 		return
 	}
 
 	// ответ
-	req := models.UpdateStatusRoom{
+	res := models.UpdateStatusRoom{
 		Message: "Статус обновлён",
-		Status:  NewSlot.Status,
+		Status:  bodySlot2.Status,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(req)
-
+	json.NewEncoder(w).Encode(res)
 }

@@ -72,3 +72,33 @@ func RejectOtherApplications(slotID, excludeAppID int) error {
 	}
 	return nil
 }
+
+//проверка на то, что в слоте утвержден разработчик
+ func ApprovedAplecation(slotID int) (bool, error) {
+	query := `SELECT COUNT(*) FROM apllicationsSlot
+	WHERE slot_id = ? 
+	AND status = 'approved'`
+
+	var count int
+
+    err := models.UserDB.QueryRow(query, slotID).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("ошибка проверки утвержденного разработчика на слот: %w", err)
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+
+	return true, nil
+}
+
+// при переоткрытии снимаем принятую заявку
+func ResetApprovedApplication(slotID int) error {
+	query := `UPDATE apllicationsSlot SET status = 'rejected' WHERE slot_id = ? AND status = 'approved'`
+	_, err := models.UserDB.Exec(query, slotID)
+	if err != nil {
+		return fmt.Errorf("ошибка снятия заявки: %w", err)
+	}
+	return nil
+}
