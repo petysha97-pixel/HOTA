@@ -21,7 +21,7 @@ func GetProjectByID(roomID int) (*models.Project, error) {
 	return &room, nil
 }
 
-// достаём слоты по айди комнаты
+// достаём слоты по айди проекта вместе со стеком каждого слота
 func GetSlotsByProjectID(projectID int) ([]models.Slot, error) {
 	query := `SELECT id, project_id, rolle, status, created_at FROM slots WHERE project_id = ?`
 
@@ -31,7 +31,7 @@ func GetSlotsByProjectID(projectID int) ([]models.Slot, error) {
 	}
 	defer rows.Close()
 
-	var slots []models.Slot
+	slots := []models.Slot{}
 	for rows.Next() {
 		var slot models.Slot
 		err := rows.Scan(&slot.ID, &slot.ProjectID, &slot.Rolle, &slot.Status, &slot.CreatAt)
@@ -40,42 +40,72 @@ func GetSlotsByProjectID(projectID int) ([]models.Slot, error) {
 		}
 		slots = append(slots, slot)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка чтения слотов: %w", err)
+	}
 
+	// стеки читаем отдельным запросом на каждый слот
+	for i := range slots {
+		stackIDs, err := GetStackIDsBySlotID(slots[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		slots[i].StackID = stackIDs
+	}
 
-	
-	fmt.Println(slots)
 	return slots, nil
 }
 
+// даостает стеки слотов для ответа на фронт
+func GetStacksBySlotID(slotID int) ([]models.Stack, error) {
 
+	qwer := `SELECT stacks.id, stacks.name FROM slot_stacks
+	INNER JOIN stacks ON slot_stacks.stacks_id = stacks.id
+	WHERE slot_stacks.slots_id = ?`
 
-//даостает стеки слотов для ответа на фронт
-func GetStacksBySlotID(id int) ([]models.Stack, error){
-    
-	
-	var stacks []models.Stack
-	
-	qwer := `SELECT stacks.id, stacks.name FROM user_stacks 
-	INNER JOIN stacks ON user_stacks.stack_id = stacks.id
-	WHERE user_stacks.user_id = ?`
-
-	rows, err := models.UserDB.Query(qwer, id)
-    if err != nil{
+	rows, err := models.UserDB.Query(qwer, slotID)
+	if err != nil {
 		return nil, fmt.Errorf("ошибка выполнения запроса на получения стека: %w", err)
 	}
 	defer rows.Close()
-	
-	
+
+	var stacks []models.Stack
+
 	for rows.Next() {
-  	var stack models.Stack
-	err := rows.Scan(&stack.ID, &stack.Name)
-    if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("ошибка записи стка в структуру: %w", err)
+		var stack models.Stack
+		if err := rows.Scan(&stack.ID, &stack.Name); err != nil {
+			return nil, fmt.Errorf("ошибка записи стека в структуру: %w", err)
+		}
+		stacks = append(stacks, stack)
 	}
-
-	stacks = append(stacks, stack)
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка чтения стеков: %w", err)
 	}
-
 
 	return stacks, nil
+}
+
+// ID стеков слота — чтобы заполнить Slot.StackID
+func GetStackIDsBySlotID(slotID int) ([]int, error) {
+	query := `SELECT stacks_id FROM slot_stacks WHERE slots_id = ?`
+
+	rows, err := models.UserDB.Query(query, slotID)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения стеков слота: %w", err)
+	}
+	defer rows.Close()
+
+	ids := []int{}
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("ошибка сканирования стека слота: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка чтения стеков слота: %w", err)
+	}
+
+	return ids, nil
 }

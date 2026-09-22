@@ -48,15 +48,20 @@ func RejectApplication(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Только владелец проекта может отклонять заявки", http.StatusForbidden)
 		return
 	}
+	
+	if projectData.Status == "finished" {
+		http.Error(w, "Проект завершён, заявки менять нельзя", http.StatusConflict)
+		return
+	}
 
 	// проверяем, что заявка существует и на рассмотрении
 	app, err := slotRepo.GetUserCheckingApplications(slotID, applicantID)
 	if err != nil {
-		http.Error(w, "Заявка не найдена", http.StatusNotFound)
+		http.Error(w, "Ошибка поиска заявки", http.StatusInternalServerError)
 		return
 	}
-	if app.Status != "pending" {
-		http.Error(w, "Заявка уже обработана", http.StatusBadRequest)
+	if app == nil {
+		http.Error(w, "Заявка не найдена", http.StatusNotFound)
 		return
 	}
 

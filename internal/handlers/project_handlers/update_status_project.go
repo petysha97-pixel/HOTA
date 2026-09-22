@@ -12,108 +12,107 @@ import (
 
 // драфт - воркинг - финиш
 
+// тело запроса: только новый статус
+type projectStatusIn struct {
+	Status string `json:"status"`
+}
+
 // обновляем статус комнаты
 func UpdateStatusProject(w http.ResponseWriter, r *http.Request) {
-
-	// берём из контекста + валидация
 	userID, err := service.ContextUserIDValid(r)
 	if err != nil {
 		http.Error(w, "Не авторизован", http.StatusUnauthorized)
 		return
 	}
 
-	// Достем id из гет-запроса
 	projectID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, "Не верный ID проекта", http.StatusBadRequest)
+		http.Error(w, "Неверный ID проекта", http.StatusBadRequest)
 		return
 	}
 
-	//парсим
-	var bodyProject models.Project
-	if err := json.NewDecoder(r.Body).Decode(&bodyProject); err != nil {
+	var body projectStatusIn
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Неверные данные", http.StatusBadRequest)
 		return
 	}
-	r.Body.Close()
+	defer r.Body.Close()
 
-	// достаём комнату из БД по ID из тела
-	projectData, err := projectRepo.GetProjectByID(projectID) //какой айди использователь? из гет запроса или из тела паршеного
+	if body.Status != "draft" && body.Status != "working" && body.Status != "finished" {
+		http.Error(w, "Неизвестный статус проекта", http.StatusBadRequest)
+		return
+	}
+
+	projectData, err := projectRepo.GetProjectByID(projectID)
 	if err != nil {
-		http.Error(w, "Комната не найдена", http.StatusNotFound)
+		http.Error(w, "Проект не найден", http.StatusNotFound)
 		return
 	}
 
-	//установка статуса только создателем
 	if userID != projectData.OwnerID {
-		http.Error(w, "смена статуса запрещена", 403)
-		return
-
-	}
-
-	//запрет на установления одного и того же статуса
-	if bodyProject.Status == projectData.Status {
-		http.Error(w, "Данный статус уже установлен", 403)
+		http.Error(w, "Смена статуса запрещена", http.StatusForbidden)
 		return
 	}
 
-	// посчитать общее колиство слотов и по отдельности сколько открытых и сколько закрытых
+	if body.Status == projectData.Status {
+		http.Error(w, "Данный статус уже установлен", http.StatusConflict)
+		return
+	}
+
 	totalSlot, openSlot, _, doneSlot, err := projectRepo.CountSlotStatus(projectID)
 	if err != nil {
-		fmt.Printf("Ошибка подсчета слотов %v", err)
-		http.Error(w, "Ошибка подсчета слотов", http.StatusNotFound)
+		fmt.Printf("Ошибка подсчёта слотов: %v\n", err)
+		http.Error(w, "Ошибка подсчёта слотов", http.StatusInternalServerError)
 		return
 	}
 
 	switch projectData.Status {
 	case "draft":
-		if bodyProject.Status != "working" {
-			http.Error(w, "из draft можно только в working ", 403)
+		if body.Status != "working" {
+			http.Error(w, "Из draft можно только в working", http.StatusConflict)
 			return
 		}
-
 		if openSlot > 0 {
-			http.Error(w, "перевод статуса запрещен, есть открытые слоты ", 403)
+			http.Error(w, "Перевод запрещён: есть открытые слоты", http.StatusConflict)
 			return
 		}
 
 	case "working":
-		if bodyProject.Status == "draft" {
-			//создатель открыл набор
-		} else if bodyProject.Status == "finished" {
+		if body.Status == "draft" {
+			// создатель снова открыл набор
+		} else if body.Status == "finished" {
 			if doneSlot != totalSlot {
-				http.Error(w, "перевод статуса запрещен, не все слоты завершены", 403)
+				http.Error(w, "Перевод запрещён: не все слоты завершены", http.StatusConflict)
 				return
 			}
-		}
-
-	case "finished":
-		http.Error(w, "Проект завершен, запрещена смена статуса", 403)
-		return
-
-	default:
-		if bodyProject.Status != "draft" && bodyProject.Status != "working" && bodyProject.Status != "finished" {
-			http.Error(w, "Неизвестный статус проекта", 403)
+		} else {
+			http.Error(w, "Из working можно в draft или finished", http.StatusConflict)
 			return
 		}
 
-	}
+	case "finished":
+		http.Error(w, "Проект завершён, смена статуса запрещена", http.StatusConflict)
+		return
 
-	err = projectRepo.UpdateProjectStatus(projectID, bodyProject.Status)
-	if err != nil {
-		http.Error(w, "ошибка обновления стататуса проекта", 403)
+	default:
+		http.Error(w, "Неизвестный текущий статус проекта", http.StatusConflict)
 		return
 	}
 
-	// ответ
-	req := models.UpdateStatusRoom{
+	err = projectRepo.UpdateProjectStatus(projectID, body.Status)
+	if err != nil {
+		http.Error(w, "Ошибка обновления статуса проекта", http.StatusInternalServerError)
+		return
+	}
+
+	res := models.UpdateStatusRoom{
 		Message: "Статус обновлён",
-		Status:  bodyProject.Status,
+		Status:  body.Status,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(req)
+	json.NewEncoder(w).Encode(res)
 }
 
 //anykey

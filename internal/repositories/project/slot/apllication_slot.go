@@ -2,12 +2,14 @@ package slot
 
 import (
 	"HOTA/internal/models"
+	"database/sql"
+	"errors"
 	"fmt"
 )
 
 // создание заявки
 func CreateApplication(slotID, userID int) error {
-	query := `INSERT INTO applications (slot_id, user_id, status) VALUES (?, ?, 'pending')`
+	query := `INSERT INTO applicationsSlot (slot_id, user_id, status) VALUES (?, ?, 'pending')`
 	_, err := models.UserDB.Exec(query, slotID, userID)
 	if err != nil {
 		return fmt.Errorf("ошибка создания заявки: %w", err)
@@ -15,33 +17,35 @@ func CreateApplication(slotID, userID int) error {
 	return nil
 }
 
-// проверка заявки на слот
+// ищем заявку пользователя на слот, которая ещё на рассмотрении
 func GetUserCheckingApplications(slotID, userID int) (*models.AplicationSlot, error) {
-
-	query := `SELECT id, slot_id, user_id, status, creat_add FROM apllicationsSlot 
- WHERE slot_id = ?
- AND user_id = ?`
+	query := `SELECT id, slot_id, user_id, status, created_at FROM applicationsSlot
+	WHERE slot_id = ?
+	AND user_id = ?
+	AND status = 'pending'`
 
 	var app models.AplicationSlot
 	err := models.UserDB.QueryRow(query, slotID, userID).Scan(&app.ID, &app.SlotID, &app.UserID, &app.Status, &app.Creat_add)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
 	if err != nil {
-		return nil, fmt.Errorf("заявка не найдена %w", err)
+		return nil, fmt.Errorf("ошибка поиска заявки: %w", err)
 	}
 
 	return &app, nil
-
 }
 
 // достаём все заявки по ID слота
 func GetApplicationsBySlot(slotID int) ([]models.AplicationSlot, error) {
-	query := `SELECT id, slot_id, user_id, status, creat_add FROM applications WHERE slot_id = ?`
+	query := `SELECT id, slot_id, user_id, status, created_at FROM applicationsSlot WHERE slot_id = ?`
 	rows, err := models.UserDB.Query(query, slotID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения заявок: %w", err)
 	}
 	defer rows.Close()
 
-	var app []models.AplicationSlot
+	app := []models.AplicationSlot{}
 	for rows.Next() {
 		var a models.AplicationSlot
 		err := rows.Scan(&a.ID, &a.SlotID, &a.UserID, &a.Status, &a.Creat_add)
@@ -49,6 +53,9 @@ func GetApplicationsBySlot(slotID int) ([]models.AplicationSlot, error) {
 			return nil, fmt.Errorf("ошибка сканирования: %w", err)
 		}
 		app = append(app, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка чтения заявок: %w", err)
 	}
 	return app, nil
 }
@@ -65,7 +72,7 @@ func UpdateApplicationStatus(appID int, status string) error {
 
 // отклоняем все остальные заявки на слот, кроме указанной
 func RejectOtherApplications(slotID, excludeAppID int) error {
-	query := `UPDATE apllicationsSlot SET status = 'rejected' WHERE slot_id = ? AND id != ? AND status = 'pending'`
+	query := `UPDATE applicationsSlot SET status = 'rejected' WHERE slot_id = ? AND id != ? AND status = 'pending'`
 	_, err := models.UserDB.Exec(query, slotID, excludeAppID)
 	if err != nil {
 		return fmt.Errorf("ошибка отклонения заявок: %w", err)
@@ -73,29 +80,27 @@ func RejectOtherApplications(slotID, excludeAppID int) error {
 	return nil
 }
 
-//проверка на то, что в слоте утвержден разработчик
- func ApprovedAplecation(slotID int) (bool, error) {
-	query := `SELECT COUNT(*) FROM apllicationsSlot
-	WHERE slot_id = ? 
+
+
+// проверка на то, что в слоте утверждён разработчик
+func ApprovedAplecation(slotID int) (bool, error) {
+	query := `SELECT COUNT(*) FROM applicationsSlot
+	WHERE slot_id = ?
 	AND status = 'approved'`
 
 	var count int
 
-    err := models.UserDB.QueryRow(query, slotID).Scan(&count)
+	err := models.UserDB.QueryRow(query, slotID).Scan(&count)
 	if err != nil {
-		return false, fmt.Errorf("ошибка проверки утвержденного разработчика на слот: %w", err)
+		return false, fmt.Errorf("ошибка проверки утверждённого разработчика на слот: %w", err)
 	}
 
-	if count > 0 {
-		return true, nil
-	}
-
-	return true, nil
+	return count > 0, nil
 }
 
 // при переоткрытии снимаем принятую заявку
 func ResetApprovedApplication(slotID int) error {
-	query := `UPDATE apllicationsSlot SET status = 'rejected' WHERE slot_id = ? AND status = 'approved'`
+	query := `UPDATE applicationsSlot SET status = 'rejected' WHERE slot_id = ? AND status = 'approved'`
 	_, err := models.UserDB.Exec(query, slotID)
 	if err != nil {
 		return fmt.Errorf("ошибка снятия заявки: %w", err)

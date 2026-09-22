@@ -2,9 +2,9 @@ package slot
 
 import (
 	"HOTA/internal/models"
+	projectRepo "HOTA/internal/repositories/project"
 	slotRepo "HOTA/internal/repositories/project/slot"
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	"HOTA/internal/service"
@@ -13,44 +13,59 @@ import (
 
 // создание заявки на слот
 func ApplicationsSlot(w http.ResponseWriter, r *http.Request) {
-	// берём из контекста + валидация
 	userID, err := service.ContextUserIDValid(r)
 	if err != nil {
 		http.Error(w, "Не авторизован", http.StatusUnauthorized)
 		return
 	}
 
-	slotID := r.PathValue("id")
-	fmt.Println(slotID)
-	slotIDint, err := strconv.Atoi(slotID)
+	slotID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		fmt.Println(err)
 		http.Error(w, "Некорректный id слота", http.StatusBadRequest)
-		fmt.Printf("Не получилось конвертировать строку в число: %s", err)
 		return
 	}
 
-	//проверка слота в БД
-	slot, err := slotRepo.GetSlotByID(slotIDint)
+	// проверка слота в БД
+	slotData, err := slotRepo.GetSlotByID(slotID)
 	if err != nil {
-		http.Error(w, "Слот не найден", http.StatusUnauthorized)
+		http.Error(w, "Слот не найден", http.StatusNotFound)
 		return
 	}
 
-	if slot.Status != "open" {
-		http.Error(w, "Слот закрыт", http.StatusUnauthorized)
+	if slotData.Status != "open" {
+		http.Error(w, "Слот закрыт", http.StatusConflict)
 		return
 	}
 
-	// проверка заявки на слот (пользователь не может пожавать более чем 1 заявку)
-	CheckingApplications, _ := slotRepo.GetUserCheckingApplications(slot.ID, userID)
-	if CheckingApplications != nil {
-		fmt.Printf("дубль подачи заявки на слот: %s", err)
-		http.Error(w, "Ранее заявка уже подавалась", 409)
+	// проект слота: нужен для проверки владельца и статуса
+	projectData, err := projectRepo.GetProjectByID(slotData.ProjectID)
+	if err != nil {
+		http.Error(w, "Проект не найден", http.StatusNotFound)
+		return
 	}
 
-	//подача заявки
-	err = slotRepo.CreateApplication(slot.ID, userID)
+	if projectData.OwnerID == userID {
+		http.Error(w, "Нельзя откликнуться на собственный слот", http.StatusForbidden)
+		return
+	}
+
+	if projectData.Status == "finished" {
+		http.Error(w, "Проект завершён, заявки не принимаются", http.StatusConflict)
+		return
+	}
+
+	// больше одной активной заявки нельзя
+	checking, err := slotRepo.GetUserCheckingApplications(slotData.ID, userID)
+	if err != nil {
+		http.Error(w, "Ошибка проверки заявки", http.StatusInternalServerError)
+		return
+	}
+	if checking != nil {
+		http.Error(w, "Ранее заявка уже подавалась", http.StatusConflict)
+		return
+	}
+
+	err = slotRepo.CreateApplication(slotData.ID, userID)
 	if err != nil {
 		http.Error(w, "Ошибка создания заявки", http.StatusInternalServerError)
 		return
