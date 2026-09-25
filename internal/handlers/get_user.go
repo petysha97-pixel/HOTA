@@ -12,11 +12,7 @@ import (
 // получаем нашего пользователя для отображения данных в главном меню
 func GetUser(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodGet {
-		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
-		return
-	}
-
+	
 	userID, err := service.ContextUserIDValid(r)
 	if err != nil {
 		http.Error(w, "Не авторизован", http.StatusUnauthorized)

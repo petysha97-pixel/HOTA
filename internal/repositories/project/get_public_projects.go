@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func GetProjectPublik() ([]models.Project, error) {
+func GetProjectPubliс() ([]models.Project, error) {
 	qweru := `SELECT id, name, description, owner_id, privacy, status, created_at FROM projects 
    WHERE privacy = 'public' 
    AND status IN('draft', 'working')`

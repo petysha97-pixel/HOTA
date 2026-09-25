@@ -1,16 +1,16 @@
 package project
 
 import (
-	"HOTA/internal/repositories/project"
+	repo "HOTA/internal/repositories/project"
 	"encoding/json"
 	"fmt"
 	"net/http"
 )
 
 // отдается все публичные комнаты с статусом драфт и ворк
-func GetProjectPubliс(w http.ResponseWriter, r *http.Request) {
+func GetProjectPublik(w http.ResponseWriter, r *http.Request) {
 
-	rooms, err := project.GetProjectPublik()
+	rooms, err := repo.GetProjectPubliс()
 	if err != nil {
 		fmt.Printf("Ошибка получения комнат %v", err)
 		http.Error(w, "Ошибка получения комнат %v", 500)

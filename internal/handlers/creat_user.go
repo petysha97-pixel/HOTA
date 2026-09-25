@@ -22,7 +22,7 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	fmt.Println(user)
+	
 
 	//валидиреум пользователя
 	errs := service.ValidateStruct(user)
@@ -58,7 +58,7 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 	}
 	user.Password = newpassword
 
-	fmt.Println(user)
+	
 	user, err = repositories.AppendUser(user) //сохраняем пользовтеля в БД
 	if err != nil {
 		status := models.RegistrationResponseError{

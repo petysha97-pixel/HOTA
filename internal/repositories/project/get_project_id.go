@@ -87,7 +87,7 @@ func GetStacksBySlotID(slotID int) ([]models.Stack, error) {
 
 // ID стеков слота — чтобы заполнить Slot.StackID
 func GetStackIDsBySlotID(slotID int) ([]int, error) {
-	query := `SELECT stacks_id FROM slot_stacks WHERE slots_id = ?`
+	query := `SELECT stacks_id FROM slot_stacks WHERE slot_id = ?`
 
 	rows, err := models.UserDB.Query(query, slotID)
 	if err != nil {

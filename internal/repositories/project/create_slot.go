@@ -21,7 +21,7 @@ func CreateSlot(slot *models.Slot) error {
 
 	//сохраненния связей многие ко многим (слоту к стекам)
 	for _, stackID := range slot.StackID {
-		query := `INSERT INTO slot_stacks (slots_id, stacks_id) VALUES (?, ?)`
+		query := `INSERT INTO slot_stacks (slot_id, stack_id) VALUES (?, ?)`
 		_, err := models.UserDB.Exec(query, slot.ID, stackID)
 
 		if err != nil {

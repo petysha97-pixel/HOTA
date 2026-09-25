@@ -36,34 +36,46 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// метод указывается прямо в шаблоне пути (Go 1.22+):
+	// на другой метод роутер сам ответит 405, отдельные method-middleware не нужны
+	auth := func(h http.HandlerFunc) http.Handler { return service.JWTMiddleware(h) }
+
 	//регистрация
-	mux.Handle("/user", service.POSTMiddleware(http.HandlerFunc(handlers.NewUser)))
-	mux.Handle("/stack", service.POSTMiddleware(http.HandlerFunc(handlers.GetStacks)))
+	mux.HandleFunc("POST /user", handlers.NewUser)
+	mux.HandleFunc("GET /stack", handlers.GetStacks)
 
 	//Авторизация
-	mux.Handle("/user/auth", service.POSTMiddleware(http.HandlerFunc(handlers.Auth)))
+	mux.HandleFunc("POST /user/auth", handlers.Auth)
 
 	//Главный профиль
-	mux.Handle("/profile", service.POSTMiddleware(service.JWTMiddleware(http.HandlerFunc((handlers.GetUser)))))
+	mux.Handle("/profile", service.GETMiddleware(service.JWTMiddleware(http.HandlerFunc((handlers.GetUser)))))
 
 	//CRUD
-	mux.Handle("/user/update", service.PutPatchMiddleware(service.JWTMiddleware(http.HandlerFunc(handlers.UpdateUser))))
-	mux.Handle("/user/password", service.PutPatchMiddleware(service.JWTMiddleware(http.HandlerFunc(handlers.UpdatePassword))))
-	mux.Handle("/user/email", service.PutPatchMiddleware(service.JWTMiddleware(http.HandlerFunc(handlers.UpdateEmail))))
-	mux.Handle("/user/delete", service.DeleteMiddleware(service.JWTMiddleware(http.HandlerFunc(handlers.DeleteUser))))
+	mux.Handle("PUT /user/update", auth(handlers.UpdateUser))
+	mux.Handle("PATCH /user/update", auth(handlers.UpdateUser))
+	mux.Handle("PUT /user/password", auth(handlers.UpdatePassword))
+	mux.Handle("PATCH /user/password", auth(handlers.UpdatePassword))
+	mux.Handle("PUT /user/email", auth(handlers.UpdateEmail))
+	mux.Handle("PATCH /user/email", auth(handlers.UpdateEmail))
+	mux.Handle("DELETE /user/delete", auth(handlers.DeleteUser))
 
 	//стеки
-	mux.Handle("/user/stack", service.POSTMiddleware(service.JWTMiddleware(http.HandlerFunc(handlers.AddUserStack))))
-	mux.Handle("/user/stack/update", service.PutPatchMiddleware(service.JWTMiddleware(http.HandlerFunc(handlers.UpdateStack))))
+	mux.Handle("POST /user/stack", auth(handlers.AddUserStack))
+	mux.Handle("DELETE /user/stack", auth(handlers.DeleteStack))
+	mux.Handle("PUT /user/stack/update", auth(handlers.UpdateStack))
+	mux.Handle("PATCH /user/stack/update", auth(handlers.UpdateStack))
 
 	//"О себе"
-	mux.Handle("/users/about", service.POSTMiddleware(service.JWTMiddleware(http.HandlerFunc(handlers.DescriptionUser))))
+	mux.Handle("POST /users/about", auth(handlers.DescriptionUser))
+
+	//все разработчики
+	mux.HandleFunc("GET /users", handlers.GetAllUser)
 
 	//ПРОСМОТР ПРОФИЛЯ ДРУГОГО РАЗРАБОТЧИКА
-	mux.Handle("/profile/other/{id}", service.GETMiddleware(http.HandlerFunc((handlers.GetUserOtherProfile))))
+	mux.HandleFunc("GET /profile/other/{id}", handlers.GetUserOtherProfile)
 
 	//"Умный поиск" - доработать
-	mux.Handle("/users/searche", service.GETMiddleware(http.HandlerFunc(handlers.SearcheUsers)))
+	mux.HandleFunc("GET /users/searche", handlers.SearcheUsers)
 
 	//создание проектов со слотами
 	//проекты (в проекты создается хотя бы один слот обязательно (слот создается вместе с проектом)))
@@ -71,27 +83,41 @@ func main() {
 	// получение проекта по ID
 	mux.Handle("/project/{id}", service.GETMiddleware(http.HandlerFunc(projectHAND.GetProject)))
 	//Поулчаем все публичные проекты
-	mux.HandleFunc("/project/publiс", projectHAND.GetProjectPubliс)
-	//смена статуса проекта
-	mux.Handle("/project/{id}/status", service.PutPatchMiddleware(service.JWTMiddleware(http.HandlerFunc(projectHAND.UpdateStatusProject))))
+	mux.HandleFunc("GET /project/public", projectHAND.GetProjectPublik)
+	// получение проекта по ID (токен необязателен: нужен только для приватных проектов)
+	mux.Handle("GET /project/{id}", service.OptionalJWTMiddleware(http.HandlerFunc(projectHAND.GetProject)))
 
+	//смена статуса проекта
+	mux.Handle("PUT /project/{id}/status", auth(projectHAND.UpdateStatusProject))
+	mux.Handle("PATCH /project/{id}/status", auth(projectHAND.UpdateStatusProject))
 	//смена статуса слота
 	mux.Handle("/slot/{id}/status", service.PutPatchMiddleware(service.JWTMiddleware(http.HandlerFunc(slotHAND.UpdateStatusSlot))))
+	mux.Handle("PUT /slot/{id}/status", auth(slotHAND.UpdateStatusSlot))
+	mux.Handle("PATCH /slot/{id}/status", auth(slotHAND.UpdateStatusSlot))
+
+
 
 	//заявки на слоты
+	
 
 	//подача заявки
-	mux.Handle("/slot/{id}/apply", service.POSTMiddleware(service.JWTMiddleware(http.HandlerFunc(slotHAND.ApplicationsSlot))))
+	mux.Handle("POST /slot/{id}/apply", auth(slotHAND.ApplicationsSlot))
 	//просмотр заявок на слот
-	mux.Handle("/slot/{id}/applications", service.GETMiddleware(service.JWTMiddleware(http.HandlerFunc(slotHAND.GetSlotApplications))))
+
+	mux.Handle("GET /slot/{id}/applications", auth(slotHAND.GetSlotApplications))
 	//пирнять заявку
-	mux.Handle("/slot/{id}/approve/{userID}", service.PutPatchMiddleware(service.JWTMiddleware(http.HandlerFunc(slotHAND.ApproveApplication))))
+	mux.Handle("PUT /slot/{id}/approve/{userID}", auth(slotHAND.ApproveApplication))
+	mux.Handle("PATCH /slot/{id}/approve/{userID}", auth(slotHAND.ApproveApplication))
 	//отклонить заявку
-	mux.Handle("/slot/{id}/reject/{userID}", service.PutPatchMiddleware(service.JWTMiddleware(http.HandlerFunc(slotHAND.RejectApplication))))
+	mux.Handle("PUT /slot/{id}/reject/{userID}", auth(slotHAND.RejectApplication))
+	mux.Handle("PATCH /slot/{id}/reject/{userID}", auth(slotHAND.RejectApplication))
 
 	// 3. Оборачиваем весь роутер в наше CORS Middleware
 	fmt.Println("Сервер запущен: 8080")
 	http.ListenAndServe(":8080", service.CORSMiddleware(mux))
+	if err := http.ListenAndServe(":8080", service.CORSMiddleware(mux)); err != nil {
+		log.Fatal(err)
+	}
 
 }
 

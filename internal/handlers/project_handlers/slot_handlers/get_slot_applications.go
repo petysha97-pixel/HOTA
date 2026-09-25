@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-// получить все заявки на слот
+// получить все заявки у слота
 func GetSlotApplications(w http.ResponseWriter, r *http.Request) {
 	// проверяем пользователя
 	userID, err := service.ContextUserIDValid(r)
