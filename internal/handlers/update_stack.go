@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+
 func UpdateStack(w http.ResponseWriter, r *http.Request) {
 	// 1. Проверяем пользователя
 	userID, err := service.ContextUserIDValid(r)

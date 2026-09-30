@@ -26,6 +26,7 @@ func UpdateSlotByID(slotID int, status string) (*models.Slot, error) {
 	err := models.UserDB.QueryRow(query, status, slotID).Scan(
 		&slot.ID, &slot.ProjectID, &slot.Rolle, &slot.Status, &slot.CreatAt,
 	)
+	
 	if err != nil {
 		return nil, fmt.Errorf("ошибка обновления слота: %w", err)
 	}

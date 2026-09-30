@@ -62,7 +62,7 @@ func GetApplicationsBySlot(slotID int) ([]models.AplicationSlot, error) {
 
 // обновляем статус заявки
 func UpdateApplicationStatus(appID int, status string) error {
-	query := `UPDATE apllicationsSlot SET status = ? WHERE id = ?`
+	query := `UPDATE applicationsSlot SET status = ? WHERE id = ?`
 	_, err := models.UserDB.Exec(query, status, appID)
 	if err != nil {
 		return fmt.Errorf("ошибка обновления заявки: %w", err)
@@ -79,8 +79,6 @@ func RejectOtherApplications(slotID, excludeAppID int) error {
 	}
 	return nil
 }
-
-
 
 // проверка на то, что в слоте утверждён разработчик
 func ApprovedAplecation(slotID int) (bool, error) {
@@ -106,4 +104,25 @@ func ResetApprovedApplication(slotID int) error {
 		return fmt.Errorf("ошибка снятия заявки: %w", err)
 	}
 	return nil
+}
+
+// снимаем утвержденного разработчика со слота
+func RemoveApprovedMember(slotID int) (int64, error) {
+	query := `UPDATE applicationsSlot SET status = 'removed' WHERE slot_id = ? AND status = 'approved'`
+
+	res, err := models.UserDB.Exec(query, slotID)
+	if err != nil {
+		return 0, fmt.Errorf("ошибка снятия разработчика %w", err)
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("ошибка подсчета снятия разработчия со слота %w", err)
+	}
+	if count == 0 {
+		return 0, errors.New("нет утверждённого разработчика для снятия")
+	}
+
+	return count, nil
+
 }

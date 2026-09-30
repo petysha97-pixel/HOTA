@@ -7,7 +7,7 @@ import (
 type Project struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
-	Description string    `json:"target"`
+	Description string    `json:"description"`
 	OwnerID     int       `json:"ownerID"`
 	Privacy     string    `json:"privacy"` // либо публичная комната, либо приватная privat либо public
 	Status      string    `json:"status"`  //на каком этапе проект (драфт/в разработке/ревью/закрыт/заморожен/приостановлен)

@@ -18,8 +18,7 @@ func UpdateProjectStatus(roomID int, status string) error {
 // считаем количество слотов в стататусах в проекте
 func CountSlotStatus(IDproject int) (totalSlot, openSlot, closeSlot, doneSlot int, err error) {
 
-	// COALESCE нужен потому, что SUM по пустой выборке возвращает NULL,
-	// а NULL не запишется в int
+	
 	query := `SELECT
 	COUNT(*) AS total_slots,
 	COALESCE(SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END), 0) AS open_slots,
@@ -35,3 +34,28 @@ func CountSlotStatus(IDproject int) (totalSlot, openSlot, closeSlot, doneSlot in
 
 	return totalSlot, openSlot, closeSlot, doneSlot, nil
 }
+
+// обновляем статус приватности проекта
+func UpdateProjectPrivacy(ProjectID int, privacy string) error {
+	query := `UPDATE projects SET privacy = ? WHERE id = ?`
+	_, err := models.UserDB.Exec(query, privacy, ProjectID)
+	if err != nil {
+		return fmt.Errorf("ошибка обновления приватности: %w", err)
+	}
+	return nil
+
+}
+
+
+//обновить названия и описания проекта
+// обновляем статус приватности проекта
+func UpdateProjectInfo(projectID int, name, description string) error {
+	query := `UPDATE projects SET name = ?, description = ? WHERE id = ?`
+	_, err := models.UserDB.Exec(query, name, description, projectID)
+	if err != nil {
+		return fmt.Errorf("ошибка обновления приватности: %w", err)
+	}
+	return nil
+
+}
+
