@@ -8,9 +8,9 @@ import (
 )
 
 // создание заявки
-func CreateApplication(slotID, userID int) error {
-	query := `INSERT INTO applicationsSlot (slot_id, user_id, status) VALUES (?, ?, 'pending')`
-	_, err := models.UserDB.Exec(query, slotID, userID)
+func CreateApplication(slotID, userID int, message string) error {
+	query := `INSERT INTO applicationsSlot (slot_id, user_id, status, message) VALUES (?, ?, 'pending', ?)`
+	_, err := models.UserDB.Exec(query, slotID, userID, message)
 	if err != nil {
 		return fmt.Errorf("ошибка создания заявки: %w", err)
 	}
@@ -19,13 +19,13 @@ func CreateApplication(slotID, userID int) error {
 
 // ищем заявку пользователя на слот, которая ещё на рассмотрении
 func GetUserCheckingApplications(slotID, userID int) (*models.AplicationSlot, error) {
-	query := `SELECT id, slot_id, user_id, status, created_at FROM applicationsSlot
+	query := `SELECT id, slot_id, user_id, status, message, created_at FROM applicationsSlot
 	WHERE slot_id = ?
 	AND user_id = ?
 	AND status = 'pending'`
 
 	var app models.AplicationSlot
-	err := models.UserDB.QueryRow(query, slotID, userID).Scan(&app.ID, &app.SlotID, &app.UserID, &app.Status, &app.Creat_add)
+	err := models.UserDB.QueryRow(query, slotID, userID).Scan(&app.ID, &app.SlotID, &app.UserID, &app.Status, &app.Message, &app.CreatAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -38,7 +38,7 @@ func GetUserCheckingApplications(slotID, userID int) (*models.AplicationSlot, er
 
 // достаём все заявки по ID слота
 func GetApplicationsBySlot(slotID int) ([]models.AplicationSlot, error) {
-	query := `SELECT id, slot_id, user_id, status, created_at FROM applicationsSlot WHERE slot_id = ?`
+	query := `SELECT id, slot_id, user_id, status, message, created_at FROM applicationsSlot WHERE slot_id = ?`
 	rows, err := models.UserDB.Query(query, slotID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения заявок: %w", err)
@@ -48,7 +48,7 @@ func GetApplicationsBySlot(slotID int) ([]models.AplicationSlot, error) {
 	app := []models.AplicationSlot{}
 	for rows.Next() {
 		var a models.AplicationSlot
-		err := rows.Scan(&a.ID, &a.SlotID, &a.UserID, &a.Status, &a.Creat_add)
+		err := rows.Scan(&a.ID, &a.SlotID, &a.UserID, &a.Status, &a.Message, &a.CreatAt)
 		if err != nil {
 			return nil, fmt.Errorf("ошибка сканирования: %w", err)
 		}
@@ -62,7 +62,7 @@ func GetApplicationsBySlot(slotID int) ([]models.AplicationSlot, error) {
 
 // обновляем статус заявки
 func UpdateApplicationStatus(appID int, status string) error {
-	query := `UPDATE applicationsSlot SET status = ? WHERE id = ?`
+	query := `UPDATE applicationsSlot SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
 	_, err := models.UserDB.Exec(query, status, appID)
 	if err != nil {
 		return fmt.Errorf("ошибка обновления заявки: %w", err)
@@ -72,7 +72,7 @@ func UpdateApplicationStatus(appID int, status string) error {
 
 // отклоняем все остальные заявки на слот, кроме указанной
 func RejectOtherApplications(slotID, excludeAppID int) error {
-	query := `UPDATE applicationsSlot SET status = 'rejected' WHERE slot_id = ? AND id != ? AND status = 'pending'`
+	query := `UPDATE applicationsSlot SET status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE slot_id = ? AND id != ? AND status = 'pending'`
 	_, err := models.UserDB.Exec(query, slotID, excludeAppID)
 	if err != nil {
 		return fmt.Errorf("ошибка отклонения заявок: %w", err)
@@ -98,7 +98,7 @@ func ApprovedAplecation(slotID int) (bool, error) {
 
 // при переоткрытии снимаем принятую заявку
 func ResetApprovedApplication(slotID int) error {
-	query := `UPDATE applicationsSlot SET status = 'rejected' WHERE slot_id = ? AND status = 'approved'`
+	query := `UPDATE applicationsSlot SET status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE slot_id = ? AND status = 'approved'`
 	_, err := models.UserDB.Exec(query, slotID)
 	if err != nil {
 		return fmt.Errorf("ошибка снятия заявки: %w", err)
@@ -108,7 +108,7 @@ func ResetApprovedApplication(slotID int) error {
 
 // снимаем утвержденного разработчика со слота
 func RemoveApprovedMember(slotID int) (int64, error) {
-	query := `UPDATE applicationsSlot SET status = 'removed' WHERE slot_id = ? AND status = 'approved'`
+	query := `UPDATE applicationsSlot SET status = 'removed', updated_at = CURRENT_TIMESTAMP WHERE slot_id = ? AND status = 'approved'`
 
 	res, err := models.UserDB.Exec(query, slotID)
 	if err != nil {
@@ -125,4 +125,34 @@ func RemoveApprovedMember(slotID int) (int64, error) {
 
 	return count, nil
 
+}
+
+// любая заявка пользователя на слот (в таблице она одна: UNIQUE(slot_id, user_id))
+// и сколько минут прошло с последней смены её статуса
+func GetUserApplication(slotID, userID int) (*models.AplicationSlot, int, error) {
+	query := `SELECT id, slot_id, user_id, status, message, created_at,
+	CAST((julianday('now') - julianday(COALESCE(updated_at, created_at))) * 24 * 60 AS INTEGER)
+	FROM applicationsSlot
+	WHERE slot_id = ? AND user_id = ?`
+
+	var app models.AplicationSlot
+	var minutes int
+	err := models.UserDB.QueryRow(query, slotID, userID).Scan(&app.ID, &app.SlotID, &app.UserID, &app.Status, &app.Message, &app.CreatAt, &minutes)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, 0, nil
+	}
+	if err != nil {
+		return nil, 0, fmt.Errorf("ошибка поиска заявки: %w", err)
+	}
+
+	return &app, minutes, nil
+}
+
+// повторный отклик: та же строка снова становится pending с новым сообщением
+func ReopenApplication(appID int, message string) error {
+	query := `UPDATE applicationsSlot SET status = 'pending', message = ?, created_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+	if _, err := models.UserDB.Exec(query, message, appID); err != nil {
+		return fmt.Errorf("ошибка повторной заявки: %w", err)
+	}
+	return nil
 }

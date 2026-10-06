@@ -18,7 +18,7 @@ func DescriptionUser(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println(userID)
 
-	var about models.Description
+	var about models.About
 
 	//парсим
 	if err := json.NewDecoder(r.Body).Decode(&about); err != nil {
@@ -27,15 +27,13 @@ func DescriptionUser(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if len(about.Description) > 200 {
-		http.Error(w, "Описание длишком длинное", 500)
+	if len(about.About) > 200 {
+		http.Error(w, "Описание слишком длинное", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println(about.ID)
-
 	//записываем описание о сбее в таблицу
-	err = repositories.AboutUser(userID, about.Description)
+	err = repositories.AboutUser(userID, about.About)
 	if err != nil {
 		fmt.Printf("ошибка сохранения описания: %v\n", err)
 		http.Error(w, "Ошибка сохранения описания", http.StatusInternalServerError)
@@ -45,8 +43,8 @@ func DescriptionUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
-		"message":     "Описание успешно сохранено",
-		"description": about.Description,
+		"message": "Описание успешно сохранено",
+		"about":   about.About,
 	})
 
 }

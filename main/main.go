@@ -42,6 +42,7 @@ func main() {
 	mux.HandleFunc("POST /user", handlers.NewUser)
 	mux.HandleFunc("POST /user/auth", handlers.Auth)
 	mux.HandleFunc("GET /stack", handlers.GetStacks)
+	mux.HandleFunc("GET /roles", handlers.GetRoles)
 
 	// ===== Профиль =====
 	mux.Handle("GET /profile", auth(handlers.GetUser))
@@ -71,7 +72,6 @@ func main() {
 	mux.Handle("POST /project", auth(projectHAND.CreatProject))
 	mux.HandleFunc("GET /project/public", projectHAND.GetProjectPublik)
 	mux.HandleFunc("GET /project/{id}", projectHAND.GetProject)
-	mux.HandleFunc("GET /project/{id}/card", projectHAND.GetProjectCard) // НОВОЕ
 	mux.Handle("PUT /project/{id}/privacy", auth(projectHAND.UpdatePrivateProject))
 	mux.Handle("PATCH /project/{id}/privacy", auth(projectHAND.UpdatePrivateProject))
 	mux.Handle("PUT /project/{id}/status", auth(projectHAND.UpdateStatusProject))
@@ -79,13 +79,6 @@ func main() {
 	mux.Handle("PUT /project/{id}", auth(projectHAND.UpdateProject))
 	mux.Handle("PATCH /project/{id}", auth(projectHAND.UpdateProject)) // НОВОЕ
 	mux.Handle("DELETE /project/{id}", auth(projectHAND.DeleteProject))
-
-	// ===== Каталоги (НОВОЕ) =====
-	mux.HandleFunc("GET /catalog/projects", projectHAND.GetCatalogProjects)
-	mux.HandleFunc("GET /catalog/slots", projectHAND.GetCatalogSlots)
-	mux.Handle("GET /my/projects", auth(projectHAND.GetMyProjects))
-	mux.Handle("GET /my/applications", auth(projectHAND.GetMyApplications))
-	mux.Handle("GET /inbox", auth(projectHAND.GetInbox))
 
 	// ===== Слоты =====
 	mux.Handle("POST /project/{id}/slot", auth(slotHAND.CreateSlotInProject)) // НОВОЕ

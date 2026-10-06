@@ -30,30 +30,30 @@ func CreatProject(w http.ResponseWriter, r *http.Request) {
 
 	//валидация
 	if creat.Name == "" {
-		http.Error(w, "Название комнаты обязателен", 500)
+		http.Error(w, "Название комнаты обязателен", http.StatusBadRequest)
 		return
 	}
 	if len(creat.Name) > 50 {
-		http.Error(w, "Название комнаты не должно быть больше 50 символов", 500)
+		http.Error(w, "Название комнаты не должно быть больше 50 символов", http.StatusBadRequest)
 		return
 	}
 
-	if creat.Target == "" {
-		http.Error(w, "Описание комнаты обязателен", 500)
+	if creat.Description == "" {
+		http.Error(w, "Описание комнаты обязателен", http.StatusBadRequest)
 		return
 	}
 
-	if len(creat.Target) > 300 {
-		http.Error(w, "Описание комнаты не должно быть больше 300 символов", 500)
+	if len(creat.Description) > 300 {
+		http.Error(w, "Описание комнаты не должно быть больше 300 символов", http.StatusBadRequest)
 		return
 	}
 
 	if len(creat.Slots) > 6 {
-		http.Error(w, "Максимум допустимо 6 слотов", 500)
+		http.Error(w, "Максимум допустимо 6 слотов", http.StatusBadRequest)
 		return
 	}
 	if len(creat.Slots) == 0 {
-		http.Error(w, "Хотя бы 1 слот должен быть", 500)
+		http.Error(w, "Хотя бы 1 слот должен быть", http.StatusBadRequest)
 		return
 	}
 	if creat.Privacy == "" {
@@ -61,47 +61,46 @@ func CreatProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// каждый слот: название, роль из каталога, стек
+	for _, slot := range creat.Slots {
+		if err := service.ValidateSlotStruct(slot); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
 	//комната
 	roomModel := &models.Project{
 		Name:        creat.Name,
-		Description: creat.Target,
+		Description: creat.Description,
 		OwnerID:     userID,
 		Privacy:     creat.Privacy,
 		Status:      "draft",
 	}
 
-	// создаем комнату
-	if err = project.CreatProject(roomModel); err != nil {
-		fmt.Printf("Ошибка создания комнаты %v\n", err)
-		http.Error(w, "Ошибка создания комнаты", http.StatusInternalServerError)
-		return
+	// слоты проекта: новый слот всегда открыт
+	creatSlot := make([]models.Slot, 0, len(creat.Slots))
+	for _, slot := range creat.Slots {
+		creatSlot = append(creatSlot, models.Slot{
+			Name:        slot.Name,
+			Description: slot.Description,
+			Rolle:       slot.Rolle,
+			StackID:     slot.StackID,
+			Status:      "open",
+		})
 	}
 
-	fmt.Println(roomModel.ID)
-
-	// создать слоты и связь между комнатами
-	var creatSlot []models.Slot
-
-	for _, slot := range creat.Slots {
-		slotModels := &models.Slot{
-			ProjectID:  roomModel.ID,
-			Rolle:   slot.Rolle,
-			StackID: slot.Stack,
-			Status:  "open",
-		}
-
-		if err = project.CreateSlot(slotModels); err != nil {
-			fmt.Printf("Ошибка создания слота %v\n", err)
-			http.Error(w, "Ошибка создания слота", http.StatusInternalServerError)
-			return
-		}
-		creatSlot = append(creatSlot, *slotModels)
+	// проект и слоты сохраняются одной транзакцией: при ошибке не остаётся ничего
+	if err = project.CreateProjectWithSlots(roomModel, creatSlot); err != nil {
+		fmt.Printf("Ошибка создания проекта %v\n", err)
+		http.Error(w, "Ошибка создания проекта", http.StatusInternalServerError)
+		return
 	}
 
 	//ответ
 	res := models.ProjectSlotOut{
 		Project: *roomModel,
-		Slots: creatSlot,
+		Slots:   creatSlot,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

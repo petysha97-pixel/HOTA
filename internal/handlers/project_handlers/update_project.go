@@ -37,7 +37,7 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if body.Name == "" && body.Description == "" {
-		http.Error(w, "Поля пустые, нечего обновлять", http.StatusUnauthorized)
+		http.Error(w, "Поля пустые, нечего обновлять", http.StatusBadRequest)
 		return
 	}
 
@@ -48,7 +48,7 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if userID != projectData.OwnerID {
-		http.Error(w, "Только создатель может изменить приватность проекта", http.StatusForbidden)
+		http.Error(w, "Только создатель может изменить проект", http.StatusForbidden)
 		return
 	}
 
@@ -61,13 +61,13 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 	err = projectRepo.UpdateProjectInfo(projectData.ID, body.Name, body.Description)
 	if err != nil {
 		fmt.Printf("ошибка обновления проекта %v", err)
-		http.Error(w, "Проект завершён, редакторвание невозможно", http.StatusConflict)
+		http.Error(w, "Ошибка обновления проекта", http.StatusInternalServerError)
 		return
 	}
 
 	newproject, err := projectRepo.GetProjectByID(projectID)
 	if err != nil {
-		http.Error(w, "Ошибка получкнние проекта", http.StatusNotFound)
+		http.Error(w, "Ошибка получения проекта", http.StatusInternalServerError)
 		return
 	}
 

@@ -30,11 +30,6 @@ func SearcheUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(users) == 0 {
-		http.Error(w, "По запросу ничего не найдено", http.StatusInternalServerError)
-		return
-	}
-
 	var usersDTO = make([]models.UserResponse, 0, len(users))
 	for _, user := range users {
 		//берём стеки

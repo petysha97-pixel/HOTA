@@ -20,7 +20,7 @@ func DeleteStackUser(userID int, stackID int) error {
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("стек не найден или не принадлежит пользователю")
+		return ErrStackNotFound
 	}
 
 	return nil

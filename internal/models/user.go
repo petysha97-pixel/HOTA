@@ -7,17 +7,17 @@ import (
 
 // Стуктура нашего пользователя
 type User struct {
-	ID         int    `json:"id"`
-	Email      string `json:"email"`
-	Password   string `json:"password"`
-	Nickname   string `json:"nickname"`
-	Name       string `json:"name"`  // ФИО, необязательное
-	Rolle      string `json:"rolle"`
-	Grade      string `json:"grade"` // Junior / Middle / Senior
-	Stack      []int  `json:"stack"`
-	About      string `json:"about"`
-	Creat_add  time.Time
-	Update_add time.Time
+	ID       int       `json:"id"`
+	Email    string    `json:"email"`
+	Password string    `json:"password"`
+	Nickname string    `json:"nickname"`
+	Name     string    `json:"name"` // ФИО, необязательное
+	Rolle    string    `json:"rolle"`
+	Grade    string    `json:"grade"` // Junior / Middle / Senior
+	StackID  []int     `json:"stackID"`
+	About    string    `json:"about"`
+	CreatAt  time.Time `json:"creatAt"`
+	UpdateAt time.Time `json:"updateAt"`
 }
 
 // DTO для ответа (без пароля)
@@ -33,8 +33,8 @@ type UserResponse struct {
 }
 
 type Stack struct {
-	ID   int
-	Name string
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 // DTO структура для ответа стека при регистрации
@@ -43,12 +43,18 @@ type UserStackID struct {
 	Name string `json:"name"`
 }
 
+// Роль из каталога ролей
+type Role struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 var UserDB *sql.DB
 
 // DTO структура для ответа при обновлении пароля
 type UpdatePasswors struct {
-	OldPassword string `json:"oldpassword"`
-	NewPassword string `json:"newpassword"`
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
 }
 
 // DTO структура для обновления email
@@ -68,20 +74,15 @@ type AuotOut struct {
 	Token string `json:"token"`
 }
 
-//описание о себе
-type Description struct {
-	ID          int    `json:"id"`
-	Description string `json:"description"`
+// описание о себе
+type About struct {
+	About string `json:"about"`
 }
 
-
-
 type StackUser struct {
-	IDStack int `json:"id_stack"`
+	StackID int `json:"stackID"`
 }
 
 type UpdateStacks struct {
-    StackID []int `json:"stack_id"`
+	StackID []int `json:"stackID"`
 }
-
-

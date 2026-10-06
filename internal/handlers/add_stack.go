@@ -5,6 +5,7 @@ import (
 	"HOTA/internal/repositories"
 	"HOTA/internal/service"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -26,11 +27,15 @@ func AddUserStack(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	err = repositories.AddStackUser(userID, stack.IDStack)
+	err = repositories.AddStackUser(userID, stack.StackID)
 	if err != nil {
-		fmt.Printf("Ошибка добавления стека %v", err)
-		http.Error(w, "Ошибка добавления стека", 505)
-
+		if errors.Is(err, repositories.ErrStackNotFound) {
+			http.Error(w, "Стек не найден", http.StatusNotFound)
+			return
+		}
+		fmt.Printf("Ошибка добавления стека %v\n", err)
+		http.Error(w, "Ошибка добавления стека", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

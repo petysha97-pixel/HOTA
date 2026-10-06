@@ -24,7 +24,7 @@ func ValidateStruct(User models.User) error {
 		validation.Field(&User.Nickname, validation.Required, validation.Length(2, 20), validation.By(UNIK_Nickname)),
 
 		// Роль обязательна и должна быть одной из строго заданных на фронтенде
-		validation.Field(&User.Rolle, validation.Required, validation.In(Roles...)),
+		validation.Field(&User.Rolle, validation.Required, validation.By(RoleExists)),
 
 		// Грейд обязателен
 		validation.Field(&User.Grade, validation.Required, validation.In(Grades...)),
@@ -33,18 +33,10 @@ func ValidateStruct(User models.User) error {
 		validation.Field(&User.Name, validation.Length(0, 60)),
 
 		// Стек обязателен. Мы проверяем каждый элемент массива (каждую строку технологии)
-		validation.Field(&User.Stack, validation.Required, validation.Length(1, 6), validation.Each(
+		validation.Field(&User.StackID, validation.Required, validation.Length(1, 6), validation.Each(
 			validation.Required, // Минимум 1 стек
-		)),
+		), validation.By(StacksExist)),
 	)
-}
-
-// Роли, которые фронт даёт выбрать при регистрации (ROLE_CATALOG)
-var Roles = []any{
-	"Backend", "Frontend", "Fullstack", "DevOps", "Mobile", "iOS", "Android",
-	"QA", "QA Automation", "Design", "UI/UX", "Data Science", "Data Engineer",
-	"ML Engineer", "GameDev", "Security", "Embedded", "SRE", "1C",
-	"Системный аналитик", "Tech Lead", "Архитектор", "Product Manager",
 }
 
 // Грейды пользователя

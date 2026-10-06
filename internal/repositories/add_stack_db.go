@@ -2,10 +2,14 @@ package repositories
 
 import (
 	"HOTA/internal/models"
+	"errors"
 	"fmt"
 )
 
-func AddStackUser(userID, stackID int) error{
+// стека нет в каталоге или у пользователя
+var ErrStackNotFound = errors.New("стек не найден")
+
+func AddStackUser(userID, stackID int) error {
 
 	//проверяем есть ли стек такой в БД
 	var ex bool
@@ -17,7 +21,7 @@ func AddStackUser(userID, stackID int) error{
 	}
 
 	if ex == false {
-		return fmt.Errorf("Стек не найден в БД %w", err)
+		return ErrStackNotFound
 	}
 
 	//Добавляем связи между юзером и стеком (если она ex=труе)

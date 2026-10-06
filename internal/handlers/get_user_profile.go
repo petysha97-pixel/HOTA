@@ -9,7 +9,6 @@ import (
 	"strconv"
 )
 
-
 // Переходим в профиль другого разраба
 func GetUserOtherProfile(w http.ResponseWriter, r *http.Request) {
 
@@ -28,12 +27,12 @@ func GetUserOtherProfile(w http.ResponseWriter, r *http.Request) {
 	user, err := repositories.GetUsersByID(id)
 	if err != nil {
 		fmt.Printf("ошибка поиск пользователя в БД: %v", err)
-		http.Error(w, "Ошибка поиска пользователя в БД для указания описния о себе", http.StatusBadRequest)
+		http.Error(w, "Пользователь не найден", http.StatusNotFound)
 		return
 	}
 	if user == nil {
 		fmt.Printf("ошибка поиск пользователя: %v", err)
-		http.Error(w, "Пользователь не найден", http.StatusBadRequest)
+		http.Error(w, "Пользователь не найден", http.StatusNotFound)
 		return
 	}
 

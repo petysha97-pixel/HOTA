@@ -1,19 +1,17 @@
 package models
 
-
 import (
 	"time"
 )
 
-
 type AplicationSlot struct {
-	ID int `json:"id"`
-	SlotID int `json:"slot_id"`
-	UserID int `json:"user_id"`
-	Status string `json:"status"`
-	Creat_add  time.Time `json:"creat_add"`
+	ID      int       `json:"id"`
+	SlotID  int       `json:"slotID"`
+	UserID  int       `json:"userID"`
+	Status  string    `json:"status"`
+	Message string    `json:"message"`
+	CreatAt time.Time `json:"creatAt"`
 }
-
 
 type ApplicationResponse struct {
 	Message string `json:"message"`

@@ -23,7 +23,7 @@ func GetProjectByID(roomID int) (*models.Project, error) {
 
 // достаём слоты по айди проекта вместе со стеком каждого слота
 func GetSlotsByProjectID(projectID int) ([]models.Slot, error) {
-	query := `SELECT id, project_id, rolle, status, created_at FROM slots WHERE project_id = ?`
+	query := `SELECT id, project_id, name, description, rolle, user_id, status, created_at FROM slots WHERE project_id = ?`
 
 	rows, err := models.UserDB.Query(query, projectID)
 	if err != nil {
@@ -34,10 +34,14 @@ func GetSlotsByProjectID(projectID int) ([]models.Slot, error) {
 	slots := []models.Slot{}
 	for rows.Next() {
 		var slot models.Slot
-		err := rows.Scan(&slot.ID, &slot.ProjectID, &slot.Rolle, &slot.Status, &slot.CreatAt)
+		var userID sql.NullInt64 // исполнителя может не быть (NULL)
+
+		err := rows.Scan(&slot.ID, &slot.ProjectID, &slot.Name, &slot.Description, &slot.Rolle, &userID, &slot.Status, &slot.CreatAt)
 		if err != nil {
 			return nil, fmt.Errorf("ошибка сканирования слота: %w", err)
 		}
+		slot.UserID = UserIDOrNil(userID)
+
 		slots = append(slots, slot)
 	}
 	if err := rows.Err(); err != nil {
@@ -60,8 +64,8 @@ func GetSlotsByProjectID(projectID int) ([]models.Slot, error) {
 func GetStacksBySlotID(slotID int) ([]models.Stack, error) {
 
 	qwer := `SELECT stacks.id, stacks.name FROM slot_stacks
-	INNER JOIN stacks ON slot_stacks.stacks_id = stacks.id
-	WHERE slot_stacks.slots_id = ?`
+	INNER JOIN stacks ON slot_stacks.stack_id = stacks.id
+	WHERE slot_stacks.slot_id = ?`
 
 	rows, err := models.UserDB.Query(qwer, slotID)
 	if err != nil {
@@ -87,7 +91,7 @@ func GetStacksBySlotID(slotID int) ([]models.Stack, error) {
 
 // ID стеков слота — чтобы заполнить Slot.StackID
 func GetStackIDsBySlotID(slotID int) ([]int, error) {
-	query := `SELECT stacks_id FROM slot_stacks WHERE slot_id = ?`
+	query := `SELECT stack_id FROM slot_stacks WHERE slot_id = ?`
 
 	rows, err := models.UserDB.Query(query, slotID)
 	if err != nil {

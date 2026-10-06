@@ -9,7 +9,6 @@ import (
 	"net/http"
 )
 
-
 func UpdateStack(w http.ResponseWriter, r *http.Request) {
 	// 1. Проверяем пользователя
 	userID, err := service.ContextUserIDValid(r)
@@ -25,32 +24,28 @@ func UpdateStack(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	//проверяем, что стеки существуют
+	if len(req.StackID) < 1 || len(req.StackID) > 6 {
+		http.Error(w, "Стек: от 1 до 6 технологий", http.StatusBadRequest)
+		return
+	}
+
+	//проверяем, что стеки существуют и не повторяются
 	if err := repositories.ValidateStacksExist(req.StackID); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	//Удаляем старые стеки
-	if err := repositories.DeleteUserStacks(userID); err != nil {
-		fmt.Printf("Ошибка удаления стеков: %v\n", err)
+	//заменяем стек одной транзакцией: при ошибке остаётся старый
+	if err := repositories.ReplaceUserStacks(userID, req.StackID); err != nil {
+		fmt.Printf("Ошибка обновления стеков: %v\n", err)
 		http.Error(w, "Ошибка обновления стеков", http.StatusInternalServerError)
 		return
-	}
-
-	//Добавляем новые стеки
-	for _, stackID := range req.StackID {
-		if err := repositories.AddUserStack(userID, stackID); err != nil {
-			fmt.Printf("Ошибка добавления стека: %v\n", err)
-			http.Error(w, "Ошибка обновления стеков", http.StatusInternalServerError)
-			return
-		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message":   "Стеки успешно обновлены",
-		"stack_ids": req.StackID,
+		"message": "Стеки успешно обновлены",
+		"stackID": req.StackID,
 	})
 }

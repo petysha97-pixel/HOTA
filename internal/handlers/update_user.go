@@ -34,18 +34,18 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	err = service.ValidateUpdataStruct(user, userID)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "Данные не прошли валидацию для обновления", 400)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	updateuser, err := repositories.UpdateUser(user, userID)
 	if err != nil {
 		fmt.Printf("Ошибка обновления пользователя: %v", err)
-		http.Error(w, "Ошибка обновления пользователя", 418)
+		http.Error(w, "Ошибка обновления пользователя", http.StatusInternalServerError)
 		return
 	}
 	if updateuser == nil {
-		http.Error(w, "Пользователь не найден", http.StatusBadRequest)
+		http.Error(w, "Пользователь не найден", http.StatusNotFound)
 		return
 	}
 
@@ -59,10 +59,11 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		Stack:    []models.Stack{},
 	}
 
-	stacks, err := repositories.UpdateUserStackID(userID, user.Stack)
+	// стек уже обновлён в той же транзакции, берём его для ответа
+	stacks, err := repositories.GetStacksByUserID(userID)
 	if err != nil {
-		fmt.Printf("Ошибка обновления пользователя: %v", err)
-		http.Error(w, "ошибка обновления стеков", http.StatusNotFound)
+		fmt.Printf("Ошибка получения стеков пользователя: %v\n", err)
+		http.Error(w, "Ошибка получения стеков пользователя", http.StatusInternalServerError)
 		return
 	}
 

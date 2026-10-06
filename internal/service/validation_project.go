@@ -14,9 +14,9 @@ func ValidateProlectStruct(project models.DTOProject) error {
 		validation.Field(&project.Name, validation.Required.Error("Название проекта не может быть пустым"),
 			validation.Length(3, 50).Error("Название проекта не должно быть меньше 3 символов и больше 50")),
 
-		//Цель проекта
-		validation.Field(&project.Target, validation.Required.Error("Цель проекта не может быть пустым"),
-			validation.Length(15, 300).Error("Цель проекта не должна быть меньше 15 символов и больше 300")),
+		//Описание проекта
+		validation.Field(&project.Description, validation.Required.Error("Описание проекта не может быть пустым"),
+			validation.Length(15, 300).Error("Описание проекта не должно быть меньше 15 символов и больше 300")),
 
 		//приватность проекта
 		validation.Field(&project.Privacy, validation.In("public", "private").Error("Укажите приватность проекта")),
@@ -35,16 +35,19 @@ func ValidateProlectStruct(project models.DTOProject) error {
 func ValidateSlotStruct(slot models.DTOSlot) error {
 	return validation.ValidateStruct(&slot,
 
-		//роль слота
-		validation.Field(&slot.Rolle, validation.Required, validation.In(
-			"Frontend", "Backend", "Fullstack", "DevOps")),
+		//название слота
+		validation.Field(&slot.Name, validation.Required.Error("Название слота не может быть пустым"),
+			validation.Length(3, 50).Error("Название слота не должно быть меньше 3 символов и больше 50")),
 
-		//статус слота
-		validation.Field(&slot.Status, validation.In("open", "close", "done").Error("Укажите статус слота")),
+		//описание слота (техзадание) — по желанию
+		validation.Field(&slot.Description, validation.Length(0, 300).Error("Описание слота не должно быть больше 300 символов")),
+
+		//роль слота — из каталога ролей
+		validation.Field(&slot.Rolle, validation.Required, validation.By(RoleExists)),
 
 		//стеки слота
-		validation.Field(&slot.Stack, validation.Required, validation.Length(1, 6), validation.Each(
+		validation.Field(&slot.StackID, validation.Required, validation.Length(1, 6), validation.Each(
 			validation.Required, // Минимум 1 стек
-		)),
+		), validation.By(StacksExist)),
 	)
 }
