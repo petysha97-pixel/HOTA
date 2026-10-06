@@ -32,7 +32,9 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	reposonse := models.UserResponse{
 		ID:       user.ID,
 		Nickname: user.Nickname,
+		Name:     user.Name,
 		Rolle:    user.Rolle,
+		Grade:    user.Grade,
 		Stack:    stack,
 	}
 

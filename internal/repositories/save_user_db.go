@@ -30,9 +30,11 @@ func AppendUser(user models.User) (models.User, error) {
 		Email,
 		Password,
 	    Nickname,
-		Rolle
+		Name,
+		Rolle,
+		Grade
 	   )
-	VALUES (?, ?, ?, ?);
+	VALUES (?, ?, ?, ?, ?, ?);
 	`
 
 	row, err := models.UserDB.Exec(
@@ -40,7 +42,9 @@ func AppendUser(user models.User) (models.User, error) {
 		user.Email,
 		user.Password,
 		user.Nickname,
+		user.Name,
 		user.Rolle,
+		user.Grade,
 	)
 	if err != nil {
 		return models.User{}, err

@@ -12,7 +12,7 @@ func SearcheUsersBD(query, limit string) ([]models.User, error) {
 	//нужно написать логику поиска разрабочикjd по многим составляющим (go+backend+petya)
 	// + толерантность к ошибкам (через температуру схожести) + приводиться слова к 1 региситру
 
-	quer := `SELECT DISTINCT users.id, users.Nickname, users.Rolle FROM users 
+	quer := `SELECT DISTINCT users.id, users.Nickname, COALESCE(users.Name, ''), users.Rolle, COALESCE(users.Grade, '') FROM users 
 	LEFT JOIN user_stacks
 	ON users.id = user_stacks.user_id
 	LEFT JOIN stacks 
@@ -38,7 +38,7 @@ func SearcheUsersBD(query, limit string) ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var user models.User
-		err := rows.Scan(&user.ID, &user.Nickname, &user.Rolle)
+		err := rows.Scan(&user.ID, &user.Nickname, &user.Name, &user.Rolle, &user.Grade)
 		if err != nil {
 			return nil, fmt.Errorf("Ошибка сканирования пользователя из БД %w", err)
 		}

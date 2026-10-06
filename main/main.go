@@ -5,6 +5,7 @@ import (
 	projectHAND "HOTA/internal/handlers/project_handlers"
 	slotHAND "HOTA/internal/handlers/project_handlers/slot_handlers"
 	"HOTA/internal/models"
+	"HOTA/internal/repositories"
 	"HOTA/internal/service"
 	"database/sql"
 	"fmt"
@@ -32,6 +33,10 @@ func main() {
 	}
 	models.UserDB = db
 	fmt.Println("SQLite подключен")
+
+	if err := repositories.MigrateUsers(); err != nil {
+		log.Fatal(err)
+	}
 
 	mux := http.NewServeMux()
 

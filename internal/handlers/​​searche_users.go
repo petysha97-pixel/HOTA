@@ -47,7 +47,9 @@ func SearcheUsers(w http.ResponseWriter, r *http.Request) {
 		usersDTO = append(usersDTO, models.UserResponse{
 			ID:       user.ID,
 			Nickname: user.Nickname,
+			Name:     user.Name,
 			Rolle:    user.Rolle,
+			Grade:    user.Grade,
 			Stack:    stack,
 		})
 	}

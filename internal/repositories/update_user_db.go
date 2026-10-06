@@ -9,8 +9,8 @@ import (
 // обновляем пользователя
 func UpdateUser(user models.User, id int) (*models.User, error) {
 
-	qweri := "UPDATE users SET Email = ?, Nickname = ?, Rolle = ?  WHERE id = ?"
-	_, err := models.UserDB.Exec(qweri, user.Email, user.Nickname, user.Rolle, id)
+	qweri := "UPDATE users SET Email = ?, Nickname = ?, Name = ?, Rolle = ?, Grade = ?  WHERE id = ?"
+	_, err := models.UserDB.Exec(qweri, user.Email, user.Nickname, user.Name, user.Rolle, user.Grade, id)
 	if err != nil {
 		return nil, fmt.Errorf("Ошибка в одновлении пользователя %w", err)
 	}
@@ -28,13 +28,15 @@ func GetUsersByID(id int) (*models.User, error) {
 
 	var user models.User
     var about sql.NullString
-	qweri := "SELECT id, Email, Nickname, Rolle, about FROM users WHERE id = ?"
+	qweri := "SELECT id, Email, Nickname, COALESCE(Name, ''), Rolle, COALESCE(Grade, ''), about FROM users WHERE id = ?"
 
 	err := models.UserDB.QueryRow(qweri, id).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Nickname,
+		&user.Name,
 		&user.Rolle,
+		&user.Grade,
 		&about,
 	)
 

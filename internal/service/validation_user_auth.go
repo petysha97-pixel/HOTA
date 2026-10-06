@@ -20,8 +20,13 @@ func ValidateUpdataStruct(User models.User, UserID int) error {
 		validation.Field(&User.Nickname, validation.Required, validation.Length(2, 20), validation.By(UNIL_nikaname_updata(UserID))),
 
 		// Роль обязательна и должна быть одной из строго заданных на фронтенде
-		validation.Field(&User.Rolle, validation.Required, validation.In(
-			"Frontend", "Backend", "Fullstack", "DevOps")),
+		validation.Field(&User.Rolle, validation.Required, validation.In(Roles...)),
+
+		// Грейд обязателен
+		validation.Field(&User.Grade, validation.Required, validation.In(Grades...)),
+
+		// ФИО по желанию
+		validation.Field(&User.Name, validation.Length(0, 60)),
 
 		// Стек обязателен. Мы проверяем каждый элемент массива (каждую строку технологии)
 		validation.Field(&User.Stack, validation.Required, validation.Length(1, 6), validation.Each(

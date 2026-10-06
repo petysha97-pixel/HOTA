@@ -11,7 +11,9 @@ type User struct {
 	Email      string `json:"email"`
 	Password   string `json:"password"`
 	Nickname   string `json:"nickname"`
+	Name       string `json:"name"`  // ФИО, необязательное
 	Rolle      string `json:"rolle"`
+	Grade      string `json:"grade"` // Junior / Middle / Senior
 	Stack      []int  `json:"stack"`
 	About      string `json:"about"`
 	Creat_add  time.Time
@@ -23,7 +25,9 @@ type UserResponse struct {
 	ID       int     `json:"id"`
 	Email    string  `json:"email,omitempty"`
 	Nickname string  `json:"nickname"`
+	Name     string  `json:"name"`
 	Rolle    string  `json:"rolle"`
+	Grade    string  `json:"grade"`
 	Stack    []Stack `json:"stack"`
 	About    string  `json:"about"`
 }

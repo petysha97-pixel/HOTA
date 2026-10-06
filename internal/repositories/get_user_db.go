@@ -10,12 +10,14 @@ import (
 func Get_userdb(id int) models.UserResponse{
 
 	var user models.UserResponse
-	qwery := "SELECT id, Nickname, Rolle FROM users WHERE id = ?"
+	qwery := "SELECT id, Nickname, COALESCE(Name, ''), Rolle, COALESCE(Grade, '') FROM users WHERE id = ?"
 
 	err := models.UserDB.QueryRow(qwery, id).Scan(
 		&user.ID,
 		&user.Nickname,
+		&user.Name,
 		&user.Rolle,
+		&user.Grade,
 	)
 	if err != nil {
 		// ИСПРАВЛЕНИЕ: Проверяем, если ошибка — это отсутствие строк

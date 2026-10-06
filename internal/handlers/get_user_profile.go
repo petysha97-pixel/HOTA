@@ -47,7 +47,9 @@ func GetUserOtherProfile(w http.ResponseWriter, r *http.Request) {
 	responce := models.UserResponse{
 		ID:       user.ID,
 		Nickname: user.Nickname,
+		Name:     user.Name,
 		Rolle:    user.Rolle,
+		Grade:    user.Grade,
 		Stack:    stack,
 		About:    user.About,
 	}

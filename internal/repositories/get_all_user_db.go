@@ -8,7 +8,7 @@ import (
 // функция короторая берет всех пользователей из БД во фронт
 func GETUser() ([]models.User, error) {
 
-	квери := "SELECT id, Nickname, Rolle FROM users"
+	квери := "SELECT id, Nickname, COALESCE(Name, ''), Rolle, COALESCE(Grade, '') FROM users"
 
 	ровс, ошибка := models.UserDB.Query(квери)
 	if ошибка != nil {
@@ -21,7 +21,7 @@ func GETUser() ([]models.User, error) {
 	var users []models.User
 	for ровс.Next() {
 		var user models.User
-		err := ровс.Scan(&user.ID, &user.Nickname, &user.Rolle)
+		err := ровс.Scan(&user.ID, &user.Nickname, &user.Name, &user.Rolle, &user.Grade)
 		if err != nil {
 			return nil, fmt.Errorf("Ошибка сканирования пользователя из БД %w", err)
 		}

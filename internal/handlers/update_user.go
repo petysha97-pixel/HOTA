@@ -53,7 +53,9 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		ID:       userID,
 		Email:    updateuser.Email,
 		Nickname: updateuser.Nickname,
+		Name:     updateuser.Name,
 		Rolle:    updateuser.Rolle,
+		Grade:    updateuser.Grade,
 		Stack:    []models.Stack{},
 	}
 
