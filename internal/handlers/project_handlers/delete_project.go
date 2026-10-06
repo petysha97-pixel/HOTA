@@ -4,7 +4,7 @@ import (
 	projectRepo "HOTA/internal/repositories/project"
 	"HOTA/internal/service"
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -52,7 +52,7 @@ func DeleteProject(w http.ResponseWriter, r *http.Request) {
 
 	err = projectRepo.DeleteProjectID(projectData.ID)
 	if err != nil {
-		log.Logger("Ошибка удаления проекта %v", err)
+		fmt.Printf("Ошибка удаления проекта %v", err)
 		http.Error(w, "Ошибка удаления проекта", http.StatusConflict)
 		return
 

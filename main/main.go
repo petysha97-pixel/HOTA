@@ -71,14 +71,26 @@ func main() {
 	mux.Handle("POST /project", auth(projectHAND.CreatProject))
 	mux.HandleFunc("GET /project/public", projectHAND.GetProjectPublik)
 	mux.HandleFunc("GET /project/{id}", projectHAND.GetProject)
+	mux.HandleFunc("GET /project/{id}/card", projectHAND.GetProjectCard) // НОВОЕ
 	mux.Handle("PUT /project/{id}/privacy", auth(projectHAND.UpdatePrivateProject))
 	mux.Handle("PATCH /project/{id}/privacy", auth(projectHAND.UpdatePrivateProject))
 	mux.Handle("PUT /project/{id}/status", auth(projectHAND.UpdateStatusProject))
 	mux.Handle("PATCH /project/{id}/status", auth(projectHAND.UpdateStatusProject))
 	mux.Handle("PUT /project/{id}", auth(projectHAND.UpdateProject))
+	mux.Handle("PATCH /project/{id}", auth(projectHAND.UpdateProject)) // НОВОЕ
 	mux.Handle("DELETE /project/{id}", auth(projectHAND.DeleteProject))
 
+	// ===== Каталоги (НОВОЕ) =====
+	mux.HandleFunc("GET /catalog/projects", projectHAND.GetCatalogProjects)
+	mux.HandleFunc("GET /catalog/slots", projectHAND.GetCatalogSlots)
+	mux.Handle("GET /my/projects", auth(projectHAND.GetMyProjects))
+	mux.Handle("GET /my/applications", auth(projectHAND.GetMyApplications))
+	mux.Handle("GET /inbox", auth(projectHAND.GetInbox))
+
 	// ===== Слоты =====
+	mux.Handle("POST /project/{id}/slot", auth(slotHAND.CreateSlotInProject)) // НОВОЕ
+	mux.Handle("PATCH /slot/{id}", auth(slotHAND.UpdateSlot))                 // НОВОЕ
+	mux.Handle("DELETE /slot/{id}", auth(slotHAND.DeleteSlot))                // НОВОЕ
 	mux.Handle("PUT /slot/{id}/status", auth(slotHAND.UpdateStatusSlot))
 	mux.Handle("PATCH /slot/{id}/status", auth(slotHAND.UpdateStatusSlot))
 

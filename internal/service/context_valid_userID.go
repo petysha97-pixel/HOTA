@@ -9,7 +9,7 @@ import (
 
 // берет айди из котеста и преобразует в инт и проверяет, есть юзер с айди он в БД (частое использование)
 func ContextUserIDValid(r *http.Request) (int, error) {
-	userID, ok := r.Context().Value("userIDKey").(string)
+	userID, ok := r.Context().Value(userIDKey).(string) 
 	if !ok {
 		return 0, fmt.Errorf("ID пользователя не найден")
 	}
