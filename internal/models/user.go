@@ -22,19 +22,54 @@ type User struct {
 
 // DTO для ответа (без пароля)
 type UserResponse struct {
-	ID       int     `json:"id"`
-	Email    string  `json:"email,omitempty"`
-	Nickname string  `json:"nickname"`
-	Name     string  `json:"name"`
-	Rolle    string  `json:"rolle"`
-	Grade    string  `json:"grade"`
-	Stack    []Stack `json:"stack"`
-	About    string  `json:"about"`
+	ID       int           `json:"id"`
+	Email    string        `json:"email,omitempty"`
+	Nickname string        `json:"nickname"`
+	Name     string        `json:"name"`
+	Rolle    string        `json:"rolle"`
+	Grade    string        `json:"grade"`
+	Stack    []Stack       `json:"stack"`
+	About    string        `json:"about"`
+	History  []HistoryItem `json:"history,omitempty"` // история участия, только в профиле
 }
 
+// технология пользователя: описание опыта он пишет в профиле
 type Stack struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"` // описание опыта с технологией
+}
+
+// одна строка «Истории участия» в профиле
+// type = "project" — проект, который пользователь создал
+// type = "slot" — слот, где пользователь исполнитель
+type HistoryItem struct {
+	Type        string    `json:"type"`
+	ProjectID   int       `json:"projectID"`
+	ProjectName string    `json:"projectName"`
+	Status      string    `json:"status"` // у проекта: draft/working/finished, у слота: open/review/close/done
+	CreatAt     time.Time `json:"creatAt"`
+
+	// только для проекта: сколько слотов всего, сколько занято (исполнитель есть, работа не сдана), сколько сдано
+	SlotsTotal int `json:"slotsTotal"`
+	SlotsTaken int `json:"slotsTaken"`
+	SlotsDone  int `json:"slotsDone"`
+
+	// только для слота
+	SlotID        int    `json:"slotID,omitempty"`
+	SlotName      string `json:"slotName,omitempty"`
+	Rolle         string `json:"rolle,omitempty"`
+	StackID       []int  `json:"stackID,omitempty"`
+	OwnerNickname string `json:"ownerNickname,omitempty"` // кто создал проект (кто принял в слот)
+}
+
+// правка профиля из окна «Профиль»: почта и стек меняются своими ручками
+type UpdateProfile struct {
+	Nickname string `json:"nickname"`
+	Name     string `json:"name"`
+	Rolle    string `json:"rolle"`
+	Grade    string `json:"grade"`
+	About    string `json:"about"`
 }
 
 // DTO структура для ответа стека при регистрации
@@ -79,8 +114,16 @@ type About struct {
 	About string `json:"about"`
 }
 
+// добавить или удалить одну технологию в стеке пользователя
+// description нужен только при добавлении, его можно не передавать
 type StackUser struct {
-	StackID int `json:"stackID"`
+	StackID     int    `json:"stackID"`
+	Description string `json:"description"`
+}
+
+// изменить описание опыта у одной технологии
+type StackChange struct {
+	Description string `json:"description"`
 }
 
 type UpdateStacks struct {

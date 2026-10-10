@@ -62,6 +62,7 @@ func main() {
 	// ===== Стеки =====
 	mux.Handle("POST /user/stack", auth(handlers.AddUserStack))
 	mux.Handle("DELETE /user/stack", auth(handlers.DeleteStack))
+	mux.Handle("PATCH /user/stack/{id}", auth(handlers.UpdateStackInfo))
 	mux.Handle("PUT /user/stack/update", auth(handlers.UpdateStack))
 	mux.Handle("PATCH /user/stack/update", auth(handlers.UpdateStack))
 

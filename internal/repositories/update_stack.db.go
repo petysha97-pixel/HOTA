@@ -6,19 +6,46 @@ import (
 	"fmt"
 )
 
-// перезаписываем стек пользователя: удаляем старый и добавляем новый
+// перезаписываем стек пользователя: убираем технологии, которых нет в новом списке, и добавляем новые
+// у технологий, которые остались, уровень и описание опыта сохраняются
 // вызываем только внутри транзакции (tx), чтобы при ошибке всё откатилось
 func replaceUserStacks(tx *sql.Tx, userID int, stackIDs []int) error {
 
-	// удаляем все старые стеки пользователя
-	_, err := tx.Exec(`DELETE FROM user_stacks WHERE user_id = ?`, userID)
+	// какие технологии сейчас у пользователя
+	rows, err := tx.Query(`SELECT stack_id FROM user_stacks WHERE user_id = ?`, userID)
 	if err != nil {
-		return fmt.Errorf("ошибка удаления стеков пользователя: %w", err)
+		return fmt.Errorf("ошибка получения стеков пользователя: %w", err)
+	}
+	starye := []int{}
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return fmt.Errorf("ошибка чтения стеков пользователя: %w", err)
+		}
+		starye = append(starye, id)
+	}
+	rows.Close()
+
+	// новые id складываем в map, чтобы быстро проверять «есть ли в новом списке»
+	novye := map[int]bool{}
+	for _, id := range stackIDs {
+		novye[id] = true
 	}
 
-	// добавляем новые стеки по одному
+	// удаляем технологии, которых нет в новом списке
+	for _, id := range starye {
+		if !novye[id] {
+			_, err := tx.Exec(`DELETE FROM user_stacks WHERE user_id = ? AND stack_id = ?`, userID, id)
+			if err != nil {
+				return fmt.Errorf("ошибка удаления стека пользователя: %w", err)
+			}
+		}
+	}
+
+	// добавляем новые; если технология уже есть — INSERT OR IGNORE её не трогает (уровень и описание остаются)
 	for _, stackID := range stackIDs {
-		_, err := tx.Exec(`INSERT INTO user_stacks (user_id, stack_id) VALUES (?, ?)`, userID, stackID)
+		_, err := tx.Exec(`INSERT OR IGNORE INTO user_stacks (user_id, stack_id) VALUES (?, ?)`, userID, stackID)
 		if err != nil {
 			return fmt.Errorf("ошибка добавления стека пользователю: %w", err)
 		}

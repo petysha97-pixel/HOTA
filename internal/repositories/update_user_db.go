@@ -6,35 +6,17 @@ import (
 	"fmt"
 )
 
-// обновляем пользователя вместе со стеком одной транзакцией
-func UpdateUser(user models.User, id int) (*models.User, error) {
+// обновляем профиль: ник, ФИО, роль, грейд, о себе
+// почта и стек меняются своими ручками
+func UpdateUser(profile models.UpdateProfile, id int) error {
 
-	tx, err := models.UserDB.Begin()
+	qweri := "UPDATE users SET Nickname = ?, Name = ?, Rolle = ?, Grade = ?, about = ?, Update_add = CURRENT_TIMESTAMP WHERE id = ?"
+	_, err := models.UserDB.Exec(qweri, profile.Nickname, profile.Name, profile.Rolle, profile.Grade, profile.About, id)
 	if err != nil {
-		return nil, fmt.Errorf("begin tx: %w", err)
-	}
-	defer tx.Rollback() // откатится, если не закоммитим
-
-	qweri := "UPDATE users SET Email = ?, Nickname = ?, Name = ?, Rolle = ?, Grade = ?, Update_add = CURRENT_TIMESTAMP WHERE id = ?"
-	_, err = tx.Exec(qweri, user.Email, user.Nickname, user.Name, user.Rolle, user.Grade, id)
-	if err != nil {
-		return nil, fmt.Errorf("Ошибка в одновлении пользователя %w", err)
+		return fmt.Errorf("Ошибка в одновлении пользователя %w", err)
 	}
 
-	if err := replaceUserStacks(tx, id, user.StackID); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit: %w", err)
-	}
-
-	newuser, err := GetUsersByID(id)
-	if err != nil {
-		return nil, fmt.Errorf("Ошибка в одновлении пользователя %w", err)
-	}
-
-	return newuser, nil
+	return nil
 }
 
 // достает пользователя из БД по айди

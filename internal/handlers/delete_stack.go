@@ -10,6 +10,7 @@ import (
 	"net/http"
 )
 
+// удалить одну технологию из стека: последнюю удалить нельзя
 func DeleteStack(w http.ResponseWriter, r *http.Request) {
 	userID, err := service.ContextUserIDValid(r)
 	if err != nil {
@@ -30,6 +31,11 @@ func DeleteStack(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, repositories.ErrStackNotFound) {
 			http.Error(w, "Стек не найден", http.StatusNotFound)
+			return
+		}
+		// последнюю технологию удалить нельзя
+		if errors.Is(err, repositories.ErrStackLast) {
+			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
 		fmt.Printf("Ошибка удаления стека %v\n", err)

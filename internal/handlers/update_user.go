@@ -9,57 +9,41 @@ import (
 	"net/http"
 )
 
-// функция обновления пользователя
+// правка профиля из окна «Профиль»: ник, ФИО, роль, грейд, о себе
+// почта меняется ручкой /user/email, стек — ручками /user/stack
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Достаем userID из контекста запроса
-	// r.Context().Value возвращает тип interface{}, поэтому приводим его к string через .(string)
 	userID, err := service.ContextUserIDValid(r)
 	if err != nil {
 		http.Error(w, "Не авторизован", http.StatusUnauthorized)
 		return
 	}
 
-	//
-	var user models.User
-
 	//парсим
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	var profile models.UpdateProfile
+	if err := json.NewDecoder(r.Body).Decode(&profile); err != nil {
 		http.Error(w, "Неверные данные", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 
-	//валидируем пользователя
-	err = service.ValidateUpdataStruct(user, userID)
+	//валидируем
+	err = service.ValidateUpdataStruct(profile, userID)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	updateuser, err := repositories.UpdateUser(user, userID)
+	err = repositories.UpdateUser(profile, userID)
 	if err != nil {
-		fmt.Printf("Ошибка обновления пользователя: %v", err)
+		fmt.Printf("Ошибка обновления пользователя: %v\n", err)
 		http.Error(w, "Ошибка обновления пользователя", http.StatusInternalServerError)
 		return
 	}
-	if updateuser == nil {
-		http.Error(w, "Пользователь не найден", http.StatusNotFound)
-		return
-	}
 
-	usersDTO := models.UserResponse{
-		ID:       userID,
-		Email:    updateuser.Email,
-		Nickname: updateuser.Nickname,
-		Name:     updateuser.Name,
-		Rolle:    updateuser.Rolle,
-		Grade:    updateuser.Grade,
-		Stack:    []models.Stack{},
-	}
-
-	// стек уже обновлён в той же транзакции, берём его для ответа
+	// в ответ отдаём обновлённый профиль (без истории участия — она не менялась)
+	user := repositories.Get_userdb(userID)
 	stacks, err := repositories.GetStacksByUserID(userID)
 	if err != nil {
 		fmt.Printf("Ошибка получения стеков пользователя: %v\n", err)
@@ -67,12 +51,17 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, stack := range stacks {
-		usersDTO.Stack = append(usersDTO.Stack, stack)
+	usersDTO := models.UserResponse{
+		ID:       user.ID,
+		Nickname: user.Nickname,
+		Name:     user.Name,
+		Rolle:    user.Rolle,
+		Grade:    user.Grade,
+		About:    user.About,
+		Stack:    stacks,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(usersDTO)
-
 }
