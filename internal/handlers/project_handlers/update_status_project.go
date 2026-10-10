@@ -59,7 +59,7 @@ func UpdateStatusProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalSlot, openSlot, _, doneSlot, err := projectRepo.CountSlotStatus(projectID)
+	counts, err := projectRepo.CountSlotStatus(projectID)
 	if err != nil {
 		fmt.Printf("Ошибка подсчёта слотов: %v\n", err)
 		http.Error(w, "Ошибка подсчёта слотов", http.StatusInternalServerError)
@@ -72,8 +72,12 @@ func UpdateStatusProject(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Из draft можно только в working", http.StatusConflict)
 			return
 		}
-		if openSlot > 0 {
-			http.Error(w, "Перевод запрещён: есть открытые слоты", http.StatusConflict)
+		if counts.Total == 0 {
+			http.Error(w, "Перевод запрещён: в проекте нет слотов", http.StatusConflict)
+			return
+		}
+		if counts.Open > 0 || counts.Review > 0 {
+			http.Error(w, "Перевод запрещён: есть слоты в open или review", http.StatusConflict)
 			return
 		}
 
@@ -81,7 +85,7 @@ func UpdateStatusProject(w http.ResponseWriter, r *http.Request) {
 		if body.Status == "draft" {
 			// создатель снова открыл набор
 		} else if body.Status == "finished" {
-			if doneSlot != totalSlot {
+			if counts.Done != counts.Total {
 				http.Error(w, "Перевод запрещён: не все слоты завершены", http.StatusConflict)
 				return
 			}

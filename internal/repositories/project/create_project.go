@@ -5,18 +5,28 @@ import (
 	"fmt"
 )
 
-// создние комнаты
-func CreatProject(room *models.Project) error {
-	query := `INSERT INTO projects (name, description, owner_id, privacy, status)VALUES (?, ?, ?, ?, ?);`
+// создание проекта вместе со слотами одной транзакцией: либо всё, либо ничего
+func CreateProjectWithSlots(room *models.Project, slots []models.Slot) error {
+	tx, err := models.UserDB.Begin()
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback() // откатится, если не закоммитим
 
-	row, err := models.UserDB.Exec(query, room.Name, room.Description, room.OwnerID, room.Privacy, room.Status)
+	// id и дату создания ставит БД, забираем их через RETURNING
+	query := `INSERT INTO projects (name, description, owner_id, privacy, status) VALUES (?, ?, ?, ?, ?) RETURNING id, created_at`
+
+	err = tx.QueryRow(query, room.Name, room.Description, room.OwnerID, room.Privacy, room.Status).Scan(&room.ID, &room.CreatAt)
 	if err != nil {
 		return fmt.Errorf("ошибка создание комнаты %w", err)
 	}
 
-	//достаем id комнаты из БД
-	id, _ := row.LastInsertId()
-	room.ID = int(id)
+	for i := range slots {
+		slots[i].ProjectID = room.ID
+		if err := createSlot(tx, &slots[i]); err != nil {
+			return err
+		}
+	}
 
-	return nil
+	return tx.Commit()
 }

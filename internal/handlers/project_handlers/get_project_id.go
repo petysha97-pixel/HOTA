@@ -42,7 +42,7 @@ func GetProject(w http.ResponseWriter, r *http.Request) {
 	slots, err := roomRepo.GetSlotsByProjectID(roomID)
 	if err != nil {
 		fmt.Printf("Ошибка в поиске слота %v\n", err)
-		http.Error(w, "ошибка слотов", http.StatusNotFound)
+		http.Error(w, "Ошибка получения слотов", http.StatusInternalServerError)
 		return
 	}
 

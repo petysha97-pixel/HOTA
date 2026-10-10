@@ -5,22 +5,32 @@ import (
 	"fmt"
 )
 
-// DeleteStackUser удаляет стек пользователя по userID и stackID
+// DeleteStackUser удаляет одну технологию из стека пользователя
+// последнюю удалить нельзя: стек обязателен
 func DeleteStackUser(userID int, stackID int) error {
-	query := `DELETE FROM user_stacks WHERE user_id = ? AND stack_id = ?`
 
-	result, err := models.UserDB.Exec(query, userID, stackID)
+	// есть ли такая технология у пользователя
+	var ex bool
+	err := models.UserDB.QueryRow(`SELECT EXISTS(SELECT 1 FROM user_stacks WHERE user_id = ? AND stack_id = ?)`, userID, stackID).Scan(&ex)
 	if err != nil {
-		return fmt.Errorf("delete stack user: %w", err)
+		return fmt.Errorf("ошибка проверки стека пользователя: %w", err)
+	}
+	if !ex {
+		return ErrStackNotFound
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	// последнюю не удаляем
+	count, err := CountUserStacks(userID)
 	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
+		return err
+	}
+	if count <= 1 {
+		return ErrStackLast
 	}
 
-	if rowsAffected == 0 {
-		return fmt.Errorf("стек не найден или не принадлежит пользователю")
+	_, err = models.UserDB.Exec(`DELETE FROM user_stacks WHERE user_id = ? AND stack_id = ?`, userID, stackID)
+	if err != nil {
+		return fmt.Errorf("ошибка удаления стека пользователя: %w", err)
 	}
 
 	return nil

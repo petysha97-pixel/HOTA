@@ -9,33 +9,37 @@ type Project struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	OwnerID     int       `json:"ownerID"`
-	Privacy     string    `json:"privacy"` // либо публичная комната, либо приватная privat либо public
-	Status      string    `json:"status"`  //на каком этапе проект (драфт/в разработке/ревью/закрыт/заморожен/приостановлен)
-	CreatAt     time.Time `json:"creat_at"`
+	Privacy     string    `json:"privacy"` // public или private
+	Status      string    `json:"status"`  // draft, working, finished
+	CreatAt     time.Time `json:"creatAt"`
 }
 
 type Slot struct {
-	ID        int       `json:"id"`
-	ProjectID int       `json:"project_id"`
-	Rolle     string    `json:"rolle"`
-	StackID   []int     `json:"stack"`
-	Status    string    `json:"status"`
-	CreatAt   time.Time `json:"creat_at"`
+	ID          int       `json:"id"`
+	ProjectID   int       `json:"projectID"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Rolle       string    `json:"rolle"`
+	StackID     []int     `json:"stackID"`
+	UserID      *int      `json:"userID"` // исполнитель, null — никого
+	Status      string    `json:"status"` // open, review, close, done
+	CreatAt     time.Time `json:"creatAt"`
 }
 
 // dto
 type DTOProject struct {
-	Name    string    `json:"name"`
-	Target  string    `json:"target"`
-	Privacy string    `json:"privacy"` // public или private
-	Status  string    `json:"status"`  // draft, worling, finish
-	Slots   []DTOSlot `json:"slots"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Privacy     string    `json:"privacy"` // public или private
+	Status      string    `json:"status"`  // draft, working, finished
+	Slots       []DTOSlot `json:"slots"`
 }
 
 type DTOSlot struct {
-	Rolle  string `json:"rolle"`
-	Stack  []int  `json:"stack"`
-	Status string `json:"status"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Rolle       string `json:"rolle"`
+	StackID     []int  `json:"stackID"`
 }
 
 // dto для ответа

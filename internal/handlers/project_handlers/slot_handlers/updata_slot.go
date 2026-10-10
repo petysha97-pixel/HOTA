@@ -2,20 +2,14 @@ package slot
 
 import (
 	"HOTA/internal/models"
-	projectRepo "HOTA/internal/repositories/project"
 	slotRepo "HOTA/internal/repositories/project/slot"
 	"HOTA/internal/service"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
-
-
-
-
-// PATCH /slot/{id} — правка роли и стека, пока слот открыт и никто не утверждён
+// PATCH /slot/{id} — правка названия, описания, роли и стека, пока слот открыт и никто не утверждён
 func UpdateSlot(w http.ResponseWriter, r *http.Request) {
 	slotData, _, ok := ownerSlot(w, r)
 	if !ok {
@@ -34,8 +28,8 @@ func UpdateSlot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if slotData.Status != "open" {
-		http.Error(w, "Менять можно только открытый слот", http.StatusConflict)
+	if slotData.Status != "open" || slotData.UserID != nil {
+		http.Error(w, "Менять можно только открытый слот без разработчика", http.StatusConflict)
 		return
 	}
 
@@ -49,7 +43,7 @@ func UpdateSlot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = slotRepo.UpdateSlotInfo(slotData.ID, body.Rolle, body.Stack); err != nil {
+	if err = slotRepo.UpdateSlotInfo(slotData.ID, body.Name, body.Description, body.Rolle, body.StackID); err != nil {
 		fmt.Printf("Ошибка обновления слота: %v\n", err)
 		http.Error(w, "Ошибка обновления слота", http.StatusInternalServerError)
 		return
@@ -60,7 +54,6 @@ func UpdateSlot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка получения слота", http.StatusInternalServerError)
 		return
 	}
-	updated.StackID = body.Stack
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

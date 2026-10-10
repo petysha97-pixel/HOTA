@@ -53,7 +53,7 @@ func DeleteProject(w http.ResponseWriter, r *http.Request) {
 	err = projectRepo.DeleteProjectID(projectData.ID)
 	if err != nil {
 		fmt.Printf("Ошибка удаления проекта %v", err)
-		http.Error(w, "Ошибка удаления проекта", http.StatusConflict)
+		http.Error(w, "Ошибка удаления проекта", http.StatusInternalServerError)
 		return
 
 	}

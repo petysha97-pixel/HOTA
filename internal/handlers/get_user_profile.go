@@ -9,47 +9,50 @@ import (
 	"strconv"
 )
 
-
-// Переходим в профиль другого разраба
+// Переходим в профиль другого разраба: та же страница, что и свой профиль, но без почты
+// в истории участия только публичные проекты
 func GetUserOtherProfile(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.PathValue("id")
-	fmt.Println(userID)
 
 	id, err := strconv.Atoi(userID)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(w, "Некорректный id пользователя для перехода на его профиль", http.StatusBadRequest)
-		fmt.Printf("Не получилось конвертировать строку в число: %s", userID)
 		return
 	}
-	fmt.Println(id)
+
 	//Провеока пользователя в БД по айди и возвращаем его
 	user, err := repositories.GetUsersByID(id)
-	if err != nil {
-		fmt.Printf("ошибка поиск пользователя в БД: %v", err)
-		http.Error(w, "Ошибка поиска пользователя в БД для указания описния о себе", http.StatusBadRequest)
-		return
-	}
-	if user == nil {
-		fmt.Printf("ошибка поиск пользователя: %v", err)
-		http.Error(w, "Пользователь не найден", http.StatusBadRequest)
+	if err != nil || user == nil {
+		http.Error(w, "Пользователь не найден", http.StatusNotFound)
 		return
 	}
 
 	//берём стеки
 	stack, err := repositories.GetStacksByUserID(user.ID)
 	if err != nil {
-		http.Error(w, "Ошибка сканирования стека при передачи всех пользователей", http.StatusInternalServerError)
+		fmt.Printf("Ошибка получения стеков пользователя %v\n", err)
+		http.Error(w, "Ошибка получения стеков пользователя", http.StatusInternalServerError)
+		return
+	}
+
+	// история участия: чужим показываем только публичные проекты
+	history, err := repositories.GetUserHistory(user.ID, true)
+	if err != nil {
+		fmt.Printf("Ошибка получения истории участия %v\n", err)
+		http.Error(w, "Ошибка получения истории участия", http.StatusInternalServerError)
 		return
 	}
 
 	responce := models.UserResponse{
 		ID:       user.ID,
 		Nickname: user.Nickname,
+		Name:     user.Name,
 		Rolle:    user.Rolle,
-		Stack:    stack,
+		Grade:    user.Grade,
 		About:    user.About,
+		Stack:    stack,
+		History:  history,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

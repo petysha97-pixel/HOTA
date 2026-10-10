@@ -6,60 +6,28 @@ import (
 	"errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
-// валидация полей при регистрации
-func ValidateUpdataStruct(User models.User, UserID int) error {
-	return validation.ValidateStruct(&User,
+// валидация правки профиля (окно «Профиль»): ник, ФИО, роль, грейд, о себе
+// почта и стек меняются своими ручками и проверяются там
+func ValidateUpdataStruct(profile models.UpdateProfile, UserID int) error {
+	return validation.ValidateStruct(&profile,
 
-		//Почта (мыло @ + домен)
-		validation.Field(&User.Email, validation.Required, is.Email, validation.Length(1, 30), validation.By(UNIL_email_updata(UserID))),
+		// Никнейм (от 2 символов), свободный у других пользователей
+		validation.Field(&profile.Nickname, validation.Required, validation.Length(2, 20), validation.By(UNIL_nikaname_updata(UserID))),
 
-		// Никнейм (от 2 символов)
-		validation.Field(&User.Nickname, validation.Required, validation.Length(2, 20), validation.By(UNIL_nikaname_updata(UserID))),
+		// ФИО по желанию
+		validation.Field(&profile.Name, validation.Length(0, 60)),
 
-		// Роль обязательна и должна быть одной из строго заданных на фронтенде
-		validation.Field(&User.Rolle, validation.Required, validation.In(
-			"Frontend", "Backend", "Fullstack", "DevOps")),
+		// Роль обязательна и должна быть в каталоге ролей
+		validation.Field(&profile.Rolle, validation.Required, validation.By(RoleExists)),
 
-		// Стек обязателен. Мы проверяем каждый элемент массива (каждую строку технологии)
-		validation.Field(&User.Stack, validation.Required, validation.Length(1, 6), validation.Each(
-			validation.Required, // Минимум 1 стек
-		)),
+		// Грейд обязателен
+		validation.Field(&profile.Grade, validation.Required, validation.In(Grades...)),
+
+		// О себе по желанию, до 200 символов
+		validation.Field(&profile.About, validation.Length(0, 200)),
 	)
-}
-
-func UNIL_email_updata(UserID int) func(any) error {
-	return func(email any) error {
-
-		emal, ok := email.(string)
-		if !ok {
-			return errors.New("Почта должна быть строкой")
-		}
-
-		var count int
-
-		query := `SELECT COUNT(1) FROM users WHERE Email = ? AND id != ?`
-
-		err := models.UserDB.QueryRow(query, emal, UserID).Scan(&count)
-
-		if errors.Is(err, sql.ErrNoRows) {
-			// логин свободен
-			return nil
-		}
-
-		if err != nil {
-			return err //ошиба из БД
-		}
-
-		if count > 0 {
-			return errors.New("емаил уже занят другим пользователем")
-		}
-
-		return nil
-	}
-
 }
 
 func UNIL_nikaname_updata(UserID int) func(any) error {

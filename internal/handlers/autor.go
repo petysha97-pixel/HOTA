@@ -25,27 +25,24 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 
 	query := "SELECT id, Email, Password FROM users WHERE Email = ?"
 	if err := models.UserDB.QueryRow(query, authDTO.Email).Scan(&id, &Email, &Hashpass); err != nil {
-		http.Error(w, "Данный email не зарегистрирован", http.StatusBadRequest)
+		http.Error(w, "Неверная почта или пароль", http.StatusUnauthorized)
 		return
 	}
 
 	//сравниванием пароли
 	if err := service.CheckPassword(Hashpass, authDTO.Password); err != nil {
-		w.WriteHeader(401)
-		fmt.Fprintf(w, "Пароли не совпадают")
+		http.Error(w, "Неверная почта или пароль", http.StatusUnauthorized)
 		return
 	}
 
 	jwtDTO, err := service.CreatJWT(id)
 	if err != nil {
-		w.WriteHeader(401)
-		fmt.Printf("Ошибка создания токена %v", err)
-		http.Error(w, "Ошибка создания токена", 400)
+		fmt.Printf("Ошибка создания токена %v\n", err)
+		http.Error(w, "Ошибка создания токена", http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Println(jwtDTO)
-	w.Header().Set("Context-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(jwtDTO)
 
 }

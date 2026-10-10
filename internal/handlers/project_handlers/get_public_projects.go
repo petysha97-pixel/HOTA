@@ -13,7 +13,7 @@ func GetProjectPublik(w http.ResponseWriter, r *http.Request) {
 	rooms, err := repo.GetProjectPubliс()
 	if err != nil {
 		fmt.Printf("Ошибка получения комнат %v", err)
-		http.Error(w, "Ошибка получения комнат %v", 500)
+		http.Error(w, "Ошибка получения проектов", http.StatusInternalServerError)
 		return
 	}
 

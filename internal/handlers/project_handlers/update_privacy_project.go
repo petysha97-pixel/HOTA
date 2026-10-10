@@ -67,7 +67,7 @@ func UpdatePrivateProject(w http.ResponseWriter, r *http.Request) {
 
 	err = projectRepo.UpdateProjectPrivacy(projectData.ID, body.Privacy)
 	if err != nil {
-		http.Error(w, "ошибка обновления приватности", http.StatusConflict)
+		http.Error(w, "ошибка обновления приватности", http.StatusInternalServerError)
 		return
 	}
 

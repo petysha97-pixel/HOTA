@@ -52,21 +52,23 @@ func CreateSlotInProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalSlot, _, _, _, err := projectRepo.CountSlotStatus(projectID)
+	counts, err := projectRepo.CountSlotStatus(projectID)
 	if err != nil {
 		http.Error(w, "Ошибка подсчёта слотов", http.StatusInternalServerError)
 		return
 	}
-	if totalSlot >= 6 {
+	if counts.Total >= 6 {
 		http.Error(w, "В проекте уже 6 слотов", http.StatusConflict)
 		return
 	}
 
 	slotModel := &models.Slot{
-		ProjectID: projectID,
-		Rolle:     body.Rolle,
-		StackID:   body.Stack,
-		Status:    "open", // новый слот всегда открыт
+		ProjectID:   projectID,
+		Name:        body.Name,
+		Description: body.Description,
+		Rolle:       body.Rolle,
+		StackID:     body.StackID,
+		Status:      "open", // новый слот всегда открыт
 	}
 	if err = projectRepo.CreateSlot(slotModel); err != nil {
 		fmt.Printf("Ошибка создания слота %v\n", err)

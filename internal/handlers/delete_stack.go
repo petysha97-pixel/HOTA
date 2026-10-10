@@ -5,10 +5,12 @@ import (
 	"HOTA/internal/repositories"
 	"HOTA/internal/service"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
 
+// удалить одну технологию из стека: последнюю удалить нельзя
 func DeleteStack(w http.ResponseWriter, r *http.Request) {
 	userID, err := service.ContextUserIDValid(r)
 	if err != nil {
@@ -25,11 +27,20 @@ func DeleteStack(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	err = repositories.DeleteStackUser(userID, stack.IDStack)
+	err = repositories.DeleteStackUser(userID, stack.StackID)
 	if err != nil {
-		fmt.Printf("Ошибка удаления стека %v", err)
-		http.Error(w, "Ошибка удаления стека", 505)
-
+		if errors.Is(err, repositories.ErrStackNotFound) {
+			http.Error(w, "Стек не найден", http.StatusNotFound)
+			return
+		}
+		// последнюю технологию удалить нельзя
+		if errors.Is(err, repositories.ErrStackLast) {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
+		fmt.Printf("Ошибка удаления стека %v\n", err)
+		http.Error(w, "Ошибка удаления стека", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

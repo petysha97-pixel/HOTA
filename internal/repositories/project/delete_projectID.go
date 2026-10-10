@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-//каскадное удаление проекта
+// каскадное удаление проекта
 func DeleteProjectID(prID int) error {
 	tx, err := models.UserDB.Begin()
 	if err != nil {
@@ -17,20 +17,31 @@ func DeleteProjectID(prID int) error {
 	_, err = tx.Exec(`
 		DELETE FROM applicationsSlot
 		WHERE slot_id IN (
-			SELECT id FROM slot_id WHERE project_id = ?
+			SELECT id FROM slots WHERE project_id = ?
 		)
 	`, prID)
 	if err != nil {
 		return fmt.Errorf("delete applications: %w", err)
 	}
 
-	// 2. Удаляем слоты проекта
+	// 2. Удаляем стеки слотов проекта
+	_, err = tx.Exec(`
+		DELETE FROM slot_stacks
+		WHERE slot_id IN (
+			SELECT id FROM slots WHERE project_id = ?
+		)
+	`, prID)
+	if err != nil {
+		return fmt.Errorf("delete slot stacks: %w", err)
+	}
+
+	// 3. Удаляем слоты проекта
 	_, err = tx.Exec(`DELETE FROM slots WHERE project_id = ?`, prID)
 	if err != nil {
 		return fmt.Errorf("delete slots: %w", err)
 	}
 
-	// 3. Удаляем сам проект
+	// 4. Удаляем сам проект
 	res, err := tx.Exec(`DELETE FROM projects WHERE id = ?`, prID)
 	if err != nil {
 		return fmt.Errorf("delete project: %w", err)
