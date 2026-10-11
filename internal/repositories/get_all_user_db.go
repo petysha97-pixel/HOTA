@@ -3,30 +3,65 @@ package repositories
 import (
 	"HOTA/internal/models"
 	"fmt"
+	"strings"
 )
 
-// функция короторая берет всех пользователей из БД во фронт
-func GETUser() ([]models.User, error) {
+// разработчики для вкладки «Разработчики»
+// meID — кто ищет: себя в списке не показываем
+// фильтры роль, грейд и стек делаем в SQL, текст ищем в хендлере
+func GetUsers(filter models.UserFilter, meID int) ([]models.User, error) {
 
-	квери := "SELECT id, Nickname, COALESCE(Name, ''), Rolle, COALESCE(Grade, '') FROM users"
+	query := `SELECT id, Nickname, COALESCE(Name, ''), Rolle, COALESCE(Grade, ''), COALESCE(about, '')
+	FROM users WHERE id != ?`
+	args := []any{meID}
 
-	ровс, ошибка := models.UserDB.Query(квери)
-	if ошибка != nil {
-		return nil, fmt.Errorf("Ошибка запроса в БД: SearchUser %w", ошибка)
+	// роль
+	if filter.Rolle != "" {
+		query += ` AND Rolle = ?`
+		args = append(args, filter.Rolle)
 	}
-	//МНЕ ПОДСКАЗАЛ LAPA (ТАК ВСЕ ДЕЛАЮТ)
 
-	defer ровс.Close()
+	// грейд
+	if filter.Grade != "" {
+		query += ` AND Grade = ?`
+		args = append(args, filter.Grade)
+	}
 
-	var users []models.User
-	for ровс.Next() {
-		var user models.User
-		err := ровс.Scan(&user.ID, &user.Nickname, &user.Name, &user.Rolle, &user.Grade)
-		if err != nil {
-			return nil, fmt.Errorf("Ошибка сканирования пользователя из БД %w", err)
+	// стек: у разработчика должны быть ВСЕ выбранные технологии
+	// считаем, сколько из выбранных у него есть, и сравниваем с количеством выбранных
+	if len(filter.StackID) > 0 {
+		voprosy := strings.TrimSuffix(strings.Repeat("?,", len(filter.StackID)), ",") // "?,?,?"
+		query += ` AND id IN (
+			SELECT user_id FROM user_stacks
+			WHERE stack_id IN (` + voprosy + `)
+			GROUP BY user_id
+			HAVING COUNT(*) = ?)`
+		for _, id := range filter.StackID {
+			args = append(args, id)
 		}
+		args = append(args, len(filter.StackID))
+	}
 
+	// новые разработчики сверху
+	query += ` ORDER BY id DESC`
+
+	rows, err := models.UserDB.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка запроса разработчиков: %w", err)
+	}
+	defer rows.Close()
+
+	users := []models.User{}
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(&user.ID, &user.Nickname, &user.Name, &user.Rolle, &user.Grade, &user.About)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка сканирования разработчика: %w", err)
+		}
 		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка чтения разработчиков: %w", err)
 	}
 
 	return users, nil

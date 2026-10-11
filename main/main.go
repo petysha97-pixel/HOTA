@@ -47,8 +47,9 @@ func main() {
 	// ===== Профиль =====
 	mux.Handle("GET /profile", auth(handlers.GetUser))
 	mux.HandleFunc("GET /profile/other/{id}", handlers.GetUserOtherProfile)
-	mux.HandleFunc("GET /users", handlers.GetAllUser)
-	mux.HandleFunc("GET /users/searche", handlers.SearcheUsers)
+	
+	// ===== Разработчики: список и поиск =====
+	mux.Handle("GET /users", auth(handlers.GetUsers))
 
 	// ===== CRUD пользователя =====
 	mux.Handle("PUT /user/update", auth(handlers.UpdateUser))

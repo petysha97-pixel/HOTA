@@ -129,3 +129,11 @@ type StackChange struct {
 type UpdateStacks struct {
 	StackID []int `json:"stackID"`
 }
+
+// фильтры поиска разработчиков (приходят из адресной строки)
+type UserFilter struct {
+	Query   string // текст: ищем в нике, имени, роли и технологиях
+	Rolle   string // роль из таблицы roles
+	Grade   string // Junior / Middle / Senior, только вместе с ролью
+	StackID []int  // технологии: у разработчика должны быть ВСЕ, максимум 6
+}
