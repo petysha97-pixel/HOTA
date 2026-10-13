@@ -47,7 +47,7 @@ func main() {
 	// ===== Профиль =====
 	mux.Handle("GET /profile", auth(handlers.GetUser))
 	mux.HandleFunc("GET /profile/other/{id}", handlers.GetUserOtherProfile)
-	
+
 	// ===== Разработчики: список и поиск =====
 	mux.Handle("GET /users", auth(handlers.GetUsers))
 
@@ -72,8 +72,9 @@ func main() {
 
 	// ===== Проекты =====
 	mux.Handle("POST /project", auth(projectHAND.CreatProject))
-	mux.HandleFunc("GET /project/public", projectHAND.GetProjectPublik)
-	mux.HandleFunc("GET /project/{id}", projectHAND.GetProject)
+	mux.Handle("GET /projects", auth(projectHAND.SearchProjects))   // вкладка «Проекты»
+	mux.Handle("GET /my/projects", auth(projectHAND.GetMyProjects)) // левая панель «Проекты»
+	mux.Handle("GET /project/{id}", auth(projectHAND.GetProject))   // страница проекта
 	mux.Handle("PUT /project/{id}/privacy", auth(projectHAND.UpdatePrivateProject))
 	mux.Handle("PATCH /project/{id}/privacy", auth(projectHAND.UpdatePrivateProject))
 	mux.Handle("PUT /project/{id}/status", auth(projectHAND.UpdateStatusProject))
@@ -83,6 +84,7 @@ func main() {
 	mux.Handle("DELETE /project/{id}", auth(projectHAND.DeleteProject))
 
 	// ===== Слоты =====
+	mux.Handle("GET /slots", auth(slotHAND.SearchSlots))                      // вкладка «Слоты»
 	mux.Handle("POST /project/{id}/slot", auth(slotHAND.CreateSlotInProject)) // НОВОЕ
 	mux.Handle("PATCH /slot/{id}", auth(slotHAND.UpdateSlot))                 // НОВОЕ
 	mux.Handle("DELETE /slot/{id}", auth(slotHAND.DeleteSlot))                // НОВОЕ
