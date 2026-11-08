@@ -4,6 +4,7 @@ import (
 	"HOTA/internal/handlers"
 	projectHAND "HOTA/internal/handlers/project_handlers"
 	slotHAND "HOTA/internal/handlers/project_handlers/slot_handlers"
+	searchHAND "HOTA/internal/handlers/project_handlers/slot_handlers/search_handlers"
 	"HOTA/internal/models"
 	"HOTA/internal/service"
 	"database/sql"
@@ -35,7 +36,6 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Короткая обёртка над JWTMiddleware, чтобы не писать service.JWTMiddleware(http.HandlerFunc(...))
 	auth := func(h http.HandlerFunc) http.Handler { return service.JWTMiddleware(h) }
 
 	// ===== Регистрация / авторизация =====
@@ -70,11 +70,14 @@ func main() {
 	// ===== О себе =====
 	mux.Handle("POST /users/about", auth(handlers.DescriptionUser))
 
+	// ===== вкладка "Проекты" =====
+	mux.Handle("GET /projects", auth(projectHAND.SearchProjects))
+	// ===== левая панель Проекты =====
+	mux.Handle("GET /my/projects", auth(projectHAND.GetMyProjects))
+
 	// ===== Проекты =====
 	mux.Handle("POST /project", auth(projectHAND.CreatProject))
-	mux.Handle("GET /projects", auth(projectHAND.SearchProjects))   // вкладка «Проекты»
-	mux.Handle("GET /my/projects", auth(projectHAND.GetMyProjects)) // левая панель «Проекты»
-	mux.Handle("GET /project/{id}", auth(projectHAND.GetProject))   // страница проекта
+	mux.Handle("GET /project/{id}", auth(projectHAND.GetProject)) // страница проекта
 	mux.Handle("PUT /project/{id}/privacy", auth(projectHAND.UpdatePrivateProject))
 	mux.Handle("PATCH /project/{id}/privacy", auth(projectHAND.UpdatePrivateProject))
 	mux.Handle("PUT /project/{id}/status", auth(projectHAND.UpdateStatusProject))
@@ -83,11 +86,17 @@ func main() {
 	mux.Handle("PATCH /project/{id}", auth(projectHAND.UpdateProject)) // НОВОЕ
 	mux.Handle("DELETE /project/{id}", auth(projectHAND.DeleteProject))
 
+	// ===== вкладка "Слоты" =====
+	mux.Handle("GET /slots", auth(slotHAND.SearchSlots))
+
+	// поиск кандидатов под слот
+	mux.Handle("GET /slot/{id}/candidates", auth(searchHAND.SearchCandidates))
+	
+
 	// ===== Слоты =====
-	mux.Handle("GET /slots", auth(slotHAND.SearchSlots))                      // вкладка «Слоты»
-	mux.Handle("POST /project/{id}/slot", auth(slotHAND.CreateSlotInProject)) // НОВОЕ
-	mux.Handle("PATCH /slot/{id}", auth(slotHAND.UpdateSlot))                 // НОВОЕ
-	mux.Handle("DELETE /slot/{id}", auth(slotHAND.DeleteSlot))                // НОВОЕ
+	mux.Handle("POST /project/{id}/slot", auth(slotHAND.CreateSlotInProject))
+	mux.Handle("PATCH /slot/{id}", auth(slotHAND.UpdateSlot))
+	mux.Handle("DELETE /slot/{id}", auth(slotHAND.DeleteSlot))
 	mux.Handle("PUT /slot/{id}/status", auth(slotHAND.UpdateStatusSlot))
 	mux.Handle("PATCH /slot/{id}/status", auth(slotHAND.UpdateStatusSlot))
 
@@ -100,7 +109,6 @@ func main() {
 	mux.Handle("PATCH /slot/{id}/reject/{userID}", auth(slotHAND.RejectApplication))
 	mux.Handle("DELETE /slot/{id}/member", auth(slotHAND.RemoveSlotMember))
 
-	// ===== Запуск =====
 	fmt.Println("Сервер запущен: 8080")
 	if err := http.ListenAndServe(":8080", service.CORSMiddleware(mux)); err != nil {
 		log.Fatal(err)

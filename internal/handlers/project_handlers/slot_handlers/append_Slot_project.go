@@ -52,7 +52,7 @@ func CreateSlotInProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	counts, err := projectRepo.CountSlotStatus(projectID)
+	counts, err := projectRepo.CountSlotStatus(projectID) //ккол-во слотов (6 максимум)
 	if err != nil {
 		http.Error(w, "Ошибка подсчёта слотов", http.StatusInternalServerError)
 		return

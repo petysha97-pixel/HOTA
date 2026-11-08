@@ -34,7 +34,7 @@ func GetProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// приватный: пускаем создателя и исполнителей
+	// приватный: пускаем создателя и разработчков
 	if project.Privacy == "private" {
 		mozhno := project.OwnerID == userID
 		for _, slot := range project.Slots {

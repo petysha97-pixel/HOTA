@@ -89,6 +89,12 @@ func ApproveApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//после утверждения разработчика мы привязали айди разработчика к айди слота (Вынести вы репо!)
+	if _, err = models.UserDB.Exec(`UPDATE slots SET user_id = ? WHERE id = ?`, applicantID, slotID); err != nil {
+		http.Error(w, "Ошибка назначения разработчика", http.StatusInternalServerError)
+		return
+	}
+
 	// слот остаётся open: в close его переводит создатель отдельным запросом
 	res := models.ApplicationResponse{
 		Message: "Заявка принята, разработчик назначен на слот",
