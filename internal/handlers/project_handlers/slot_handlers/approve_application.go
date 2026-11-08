@@ -6,6 +6,7 @@ import (
 	slotRepo "HOTA/internal/repositories/project/slot"
 	"HOTA/internal/service"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 )
@@ -51,8 +52,8 @@ func ApproveApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if slotData.Status != "open" {
-		http.Error(w, "Слот уже закрыт", http.StatusConflict)
+	if slotData.Status != "open" && slotData.Status != "review" {
+		http.Error(w, "Слот закрыт для утверждения", http.StatusConflict)
 		return
 	}
 
@@ -77,25 +78,18 @@ func ApproveApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = slotRepo.UpdateApplicationStatus(app.ID, "approved")
+	// Назначаем исполнителя, закрываем слот и отклоняем оставшуюся очередь.
+	err = slotRepo.ApproveSlotApplication(slotID, applicantID, userID)
+	if errors.Is(err, slotRepo.ErrApprovalConflict) {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
 	if err != nil {
-		http.Error(w, "Ошибка обновления заявки", http.StatusInternalServerError)
+		http.Error(w, "Ошибка утверждения заявки", http.StatusInternalServerError)
 		return
 	}
 
-	err = slotRepo.RejectOtherApplications(slotID, app.ID)
-	if err != nil {
-		http.Error(w, "Ошибка отклонения остальных заявок", http.StatusInternalServerError)
-		return
-	}
-
-	//после утверждения разработчика мы привязали айди разработчика к айди слота (Вынести вы репо!)
-	if _, err = models.UserDB.Exec(`UPDATE slots SET user_id = ? WHERE id = ?`, applicantID, slotID); err != nil {
-		http.Error(w, "Ошибка назначения разработчика", http.StatusInternalServerError)
-		return
-	}
-
-	// слот остаётся open: в close его переводит создатель отдельным запросом
+	// Отвечаем после закрытия слота
 	res := models.ApplicationResponse{
 		Message: "Заявка принята, разработчик назначен на слот",
 	}

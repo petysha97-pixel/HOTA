@@ -7,12 +7,32 @@ import (
 	"fmt"
 )
 
-// создание заявки
+var ErrApplicationConflict = errors.New("не удалось подать отклик: слот или заявка изменились")
+
+// Создаём отклик, если набор ещё открыт.
 func CreateApplication(slotID, userID int, message string) error {
-	query := `INSERT INTO applicationsSlot (slot_id, user_id, status, message) VALUES (?, ?, 'pending', ?)`
-	_, err := models.UserDB.Exec(query, slotID, userID, message)
+	// SELECT вернёт строку для вставки только при открытом наборе.
+	result, err := models.UserDB.Exec(`
+		INSERT INTO applicationsSlot (slot_id, user_id, status, message)
+		SELECT s.id, ?, 'pending', ?
+		FROM slots s
+		JOIN projects p ON p.id = s.project_id
+		WHERE s.id = ?
+		  AND s.status IN ('open', 'review')
+		  AND p.status != 'finished'
+		ON CONFLICT(slot_id, user_id) DO NOTHING
+	`, userID, message, slotID)
 	if err != nil {
-		return fmt.Errorf("ошибка создания заявки: %w", err)
+		return fmt.Errorf("создание заявки: %w", err)
+	}
+
+	// Если строка не добавилась, набор закрыт или отклик уже существует.
+	count, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("проверка создания заявки: %w", err)
+	}
+	if count == 0 {
+		return ErrApplicationConflict
 	}
 	return nil
 }
@@ -108,23 +128,65 @@ func ResetApprovedApplication(slotID int) error {
 
 // снимаем утвержденного разработчика со слота
 func RemoveApprovedMember(slotID int) (int64, error) {
-	query := `UPDATE applicationsSlot SET status = 'removed', updated_at = CURRENT_TIMESTAMP WHERE slot_id = ? AND status = 'approved'`
-
-	res, err := models.UserDB.Exec(query, slotID)
+	// Начинаем общую операцию из нескольких SQL-запросов.
+	tx, err := models.UserDB.Begin()
 	if err != nil {
-		return 0, fmt.Errorf("ошибка снятия разработчика %w", err)
+		return 0, fmt.Errorf("начало транзакции: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Снимаем утверждённую заявку.
+	res, err := tx.Exec(`
+		UPDATE applicationsSlot
+		SET status = 'removed',
+		    updated_at = CURRENT_TIMESTAMP
+		WHERE slot_id = ?
+		  AND status = 'approved'
+	`, slotID)
+	if err != nil {
+		return 0, fmt.Errorf("снятие заявки: %w", err)
 	}
 
 	count, err := res.RowsAffected()
 	if err != nil {
-		return 0, fmt.Errorf("ошибка подсчета снятия разработчия со слота %w", err)
+		return 0, fmt.Errorf("подсчёт изменённых заявок: %w", err)
 	}
+
 	if count == 0 {
 		return 0, errors.New("нет утверждённого разработчика для снятия")
 	}
 
-	return count, nil
+	if count != 1 {
+		return 0, errors.New("на слоте несколько утверждённых заявок")
+	}
 
+	// Убираем исполнителя и открываем слот.
+	res, err = tx.Exec(`
+		UPDATE slots
+		SET user_id = NULL,
+		    status = 'open'
+		WHERE id = ?
+		  AND status IN ('open', 'review')
+	`, slotID)
+	if err != nil {
+		return 0, fmt.Errorf("освобождение слота: %w", err)
+	}
+
+	changed, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("подсчёт изменённых слотов: %w", err)
+	}
+
+	if changed != 1 {
+		return 0, errors.New("слот не найден или его нельзя освободить")
+	}
+
+	// Только здесь сохраняются оба изменения.
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("сохранение транзакции: %w", err)
+	}
+
+	return count, nil
 }
 
 // любая заявка пользователя на слот (в таблице она одна: UNIQUE(slot_id, user_id))
@@ -148,11 +210,109 @@ func GetUserApplication(slotID, userID int) (*models.AplicationSlot, int, error)
 	return &app, minutes, nil
 }
 
-// повторный отклик: та же строка снова становится pending с новым сообщением
-func ReopenApplication(appID int, message string) error {
-	query := `UPDATE applicationsSlot SET status = 'pending', message = ?, created_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-	if _, err := models.UserDB.Exec(query, message, appID); err != nil {
-		return fmt.Errorf("ошибка повторной заявки: %w", err)
+// Возвращаем старый отклик в очередь, если прошла пауза.
+func ReopenApplication(appID int, message string, cooldownMinutes int) error {
+	// Проверяем состояние заявки и слота в момент обновления.
+	result, err := models.UserDB.Exec(`
+		UPDATE applicationsSlot
+		SET status = 'pending', message = ?,
+		    created_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+		  AND status IN ('rejected', 'removed')
+		  AND (julianday('now') - julianday(COALESCE(updated_at, created_at))) * 1440 >= ?
+		  AND EXISTS (
+		      SELECT 1
+		      FROM slots s
+		      JOIN projects p ON p.id = s.project_id
+		      WHERE s.id = applicationsSlot.slot_id
+		        AND s.status IN ('open', 'review')
+		        AND p.status != 'finished'
+		  )
+	`, message, appID, cooldownMinutes)
+	if err != nil {
+		return fmt.Errorf("повторная подача заявки: %w", err)
+	}
+
+	// Если условие перестало выполняться, отклик остаётся как был.
+	count, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("проверка обновления заявки: %w", err)
+	}
+	if count == 0 {
+		return ErrApplicationConflict
 	}
 	return nil
+}
+
+var ErrApprovalConflict = errors.New("слот занят или заявка уже изменилась")
+
+// утверждение кондидата и утверждения на слот
+// Остальные заявки отклоняются.
+func ApproveSlotApplication(slotID, applicantID, ownerID int) error {
+	tx, err := models.UserDB.Begin()
+	if err != nil {
+		return fmt.Errorf("начало транзакции: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Назначаем кандидата, только если слот всё ещё свободен,
+	// а проект принадлежит этому владельцу и не завершён.
+	res, err := tx.Exec(`
+	UPDATE slots
+	SET user_id = ?,
+    status = 'close'
+	WHERE id = ?
+	  AND (
+	      (status = 'open' AND user_id IS NULL)
+	      OR
+	      (status = 'review' AND user_id = ?)
+	  )
+	  AND EXISTS (
+	      SELECT 1 FROM projects
+	      WHERE id = slots.project_id
+	        AND owner_id = ?
+	        AND status != 'finished'
+	  )
+`, applicantID, slotID, applicantID, ownerID)
+	if err != nil {
+		return fmt.Errorf("назначение исполнителя: %w", err)
+	}
+
+	changed, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("подсчёт изменённых слотов: %w", err)
+	}
+	if changed != 1 {
+		return ErrApprovalConflict
+	}
+
+	// Утверждаем только заявку, которая ещё ждёт решения.
+	res, err = tx.Exec(`
+		UPDATE applicationsSlot
+		SET status = 'approved', updated_at = CURRENT_TIMESTAMP
+		WHERE slot_id = ? AND user_id = ? AND status = 'pending'
+	`, slotID, applicantID)
+	if err != nil {
+		return fmt.Errorf("утверждение заявки: %w", err)
+	}
+
+	changed, err = res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("подсчёт изменённых заявок: %w", err)
+	}
+	if changed != 1 {
+		return ErrApprovalConflict
+	}
+
+	// Отклоняем оставшиеся заявки, которые ещё ждут решения.
+	_, err = tx.Exec(`
+		UPDATE applicationsSlot
+		SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
+		WHERE slot_id = ? AND status = 'pending'
+	`, slotID)
+	if err != nil {
+		return fmt.Errorf("отклонение остальных заявок: %w", err)
+	}
+
+	return tx.Commit()
 }

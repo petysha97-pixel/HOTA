@@ -44,8 +44,9 @@ func ApplicationsSlot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if slotData.Status != "open" {
-		http.Error(w, "Слот закрыт", http.StatusConflict)
+	// Отклики принимаем, пока ищем человека или знакомимся с кандидатом.
+	if slotData.Status != "open" && slotData.Status != "review" {
+		http.Error(w, "Набор на слот закрыт", http.StatusConflict)
 		return
 	}
 
@@ -109,7 +110,13 @@ func ApplicationsSlot(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		// пауза прошла — та же заявка снова становится pending
-		err = slotRepo.ReopenApplication(prev.ID, body.Message)
+		err = slotRepo.ReopenApplication(prev.ID, body.Message, reapplyCooldownMinutes)
+	}
+
+	// Слот могли закрыть, пока обрабатывался отклик.
+	if errors.Is(err, slotRepo.ErrApplicationConflict) {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
 	}
 
 	if err != nil {
