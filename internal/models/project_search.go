@@ -54,6 +54,8 @@ type RailSlot struct {
 
 // проект в левой панели «Проекты»
 type RailProject struct {
+	// Пользователь сейчас на знакомстве в одном из слотов проекта.
+	MyReview   bool       `json:"myReview"`
 	ID         int        `json:"id"`
 	Name       string     `json:"name"`
 	Status     string     `json:"status"`

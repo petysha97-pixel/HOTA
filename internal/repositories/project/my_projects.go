@@ -97,6 +97,9 @@ func fillRailProject(p *models.RailProject, meID int, isOwner bool) error {
 		// мой слот
 		if slot.UserID != nil && *slot.UserID == meID {
 			p.MySlots = append(p.MySlots, slot.Name)
+			if slot.Status == "review" {
+				p.MyReview = true
+			}
 		}
 		// на знакомстве — показываем только создателю
 		if isOwner && slot.Status == "review" {
@@ -121,7 +124,10 @@ func fillRailProject(p *models.RailProject, meID int, isOwner bool) error {
 	// приглашения мне в этот проект, которые ждут ответа
 	err = models.UserDB.QueryRow(`SELECT COUNT(*) FROM invites
 		INNER JOIN slots ON slots.id = invites.slot_id
-		WHERE slots.project_id = ? AND invites.user_id = ? AND invites.status = 'pending'`, p.ID, meID).Scan(&p.Invites)
+		WHERE slots.project_id = ? AND invites.user_id = ? AND invites.status = 'pending'
+ AND slots.status IN ('open', 'review')
+ AND EXISTS(SELECT 1 FROM projects p WHERE p.id = slots.project_id AND p.status != 'finished')
+ AND NOT EXISTS(SELECT 1 FROM applicationsSlot a WHERE a.slot_id = slots.id AND a.status = 'approved')`, p.ID, meID).Scan(&p.Invites)
 	if err != nil {
 		return fmt.Errorf("ошибка подсчёта приглашений: %w", err)
 	}

@@ -20,9 +20,6 @@ type applyIn struct {
 	Message string `json:"message"`
 }
 
-// пауза перед повторным откликом на тот же слот после отказа или снятия
-const reapplyCooldownMinutes = 120
-
 // создание заявки на слот
 func ApplicationsSlot(w http.ResponseWriter, r *http.Request) {
 	userID, err := service.ContextUserIDValid(r)
@@ -82,7 +79,7 @@ func ApplicationsSlot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// заявка на слот у пользователя одна (UNIQUE в БД): смотрим, что с прошлой
-	prev, minutes, err := slotRepo.GetUserApplication(slotData.ID, userID)
+	prev, err := slotRepo.GetUserApplication(slotData.ID, userID)
 	if err != nil {
 		http.Error(w, "Ошибка проверки заявки", http.StatusInternalServerError)
 		return
@@ -102,15 +99,9 @@ func ApplicationsSlot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Вы уже утверждены на этот слот", http.StatusConflict)
 		return
 
-	} else if minutes < reapplyCooldownMinutes {
-		// после отказа или снятия со слота откликнуться снова можно только через паузу
-		ostalos := reapplyCooldownMinutes - minutes
-		http.Error(w, fmt.Sprintf("Повторный отклик будет доступен через %d ч %d мин", ostalos/60, ostalos%60), http.StatusConflict)
-		return
-
 	} else {
-		// пауза прошла — та же заявка снова становится pending
-		err = slotRepo.ReopenApplication(prev.ID, body.Message, reapplyCooldownMinutes)
+		// Возвращаем отклонённую или снятую заявку в очередь.
+		err = slotRepo.ReopenApplication(prev.ID, body.Message)
 	}
 
 	// Слот могли закрыть, пока обрабатывался отклик.

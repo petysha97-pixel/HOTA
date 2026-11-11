@@ -6,6 +6,7 @@ import (
 	slotRepo "HOTA/internal/repositories/project/slot"
 	"HOTA/internal/service"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 )
@@ -48,7 +49,7 @@ func RejectApplication(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Только владелец проекта может отклонять заявки", http.StatusForbidden)
 		return
 	}
-	
+
 	if projectData.Status == "finished" {
 		http.Error(w, "Проект завершён, заявки менять нельзя", http.StatusConflict)
 		return
@@ -65,10 +66,14 @@ func RejectApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// обновляем статус заявки
-	err = slotRepo.UpdateApplicationStatus(app.ID, "rejected")
+	// Отклоняем заявку и снимаем кандидата со знакомства.
+	err = slotRepo.RejectSlotApplication(slotID, applicantID, userID)
+	if errors.Is(err, slotRepo.ErrRejectConflict) {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
 	if err != nil {
-		http.Error(w, "Ошибка обновления заявки", http.StatusInternalServerError)
+		http.Error(w, "Ошибка отклонения заявки", http.StatusInternalServerError)
 		return
 	}
 

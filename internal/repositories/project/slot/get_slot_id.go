@@ -4,6 +4,7 @@ import (
 	"HOTA/internal/models"
 	projectRepo "HOTA/internal/repositories/project"
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
@@ -29,15 +30,68 @@ func GetSlotByID(slotID int) (*models.Slot, error) {
 	return &slot, nil
 }
 
-// обновляем статус слота
-func UpdateSlotByID(slotID int, status string) (*models.Slot, error) {
-	query := `UPDATE slots SET status = ? WHERE id = ?`
+var ErrSlotStatusConflict = errors.New("состояние слота уже изменилось")
 
-	if _, err := models.UserDB.Exec(query, status, slotID); err != nil {
-		return nil, fmt.Errorf("ошибка обновления слота: %w", err)
+// Меняем статус слота. При переоткрытии снимаем исполнителя.
+func UpdateSlotByID(slotID, ownerID int, oldStatus, newStatus string) error {
+	// Сохраняем изменения слота и заявки вместе.
+	tx, err := models.UserDB.Begin()
+	if err != nil {
+		return fmt.Errorf("начало транзакции: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Меняем слот, только если его статус ещё тот, который прочитал обработчик.
+	// При переходе в open очищаем исполнителя.
+	result, err := tx.Exec(`
+		UPDATE slots
+		SET status = ?,
+		    user_id = CASE WHEN ? = 'open' THEN NULL ELSE user_id END
+		WHERE id = ?
+		  AND status = ?
+		  AND EXISTS (
+		      SELECT 1 FROM projects p
+		      WHERE p.id = slots.project_id
+		        AND p.owner_id = ?
+		        AND p.status != 'finished'
+		  )
+		  AND (
+		      ? = 'open'
+		      OR EXISTS (
+		          SELECT 1 FROM applicationsSlot a
+		          WHERE a.slot_id = slots.id
+		            AND a.user_id = slots.user_id
+		            AND a.status = 'approved'
+		      )
+		  )
+	`, newStatus, newStatus, slotID, oldStatus, ownerID, newStatus)
+	if err != nil {
+		return fmt.Errorf("смена статуса слота: %w", err)
 	}
 
-	return GetSlotByID(slotID)
+	// Ноль строк означает, что переход уже нельзя выполнить.
+	count, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("проверка обновления слота: %w", err)
+	}
+	if count == 0 {
+		return ErrSlotStatusConflict
+	}
+
+	// При переоткрытии помечаем принятую заявку как снятую.
+	if oldStatus == "close" && newStatus == "open" {
+		_, err = tx.Exec(`
+			UPDATE applicationsSlot
+			SET status = 'removed', updated_at = CURRENT_TIMESTAMP
+			WHERE slot_id = ? AND status = 'approved'
+		`, slotID)
+		if err != nil {
+			return fmt.Errorf("снятие исполнителя: %w", err)
+		}
+	}
+
+	// Фиксируем смену статуса и снятие исполнителя.
+	return tx.Commit()
 }
 
 // обновляем название, описание, роль и стек слота

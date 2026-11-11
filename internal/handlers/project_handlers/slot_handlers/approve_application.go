@@ -11,8 +11,7 @@ import (
 	"strconv"
 )
 
-// принять заявку на слот.
-// заявка только назначает разработчика: статус слота создатель меняет отдельно
+// Утверждаем кандидата на знакомстве и закрываем слот.
 func ApproveApplication(w http.ResponseWriter, r *http.Request) {
 	userID, err := service.ContextUserIDValid(r)
 	if err != nil {
@@ -52,8 +51,8 @@ func ApproveApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if slotData.Status != "open" && slotData.Status != "review" {
-		http.Error(w, "Слот закрыт для утверждения", http.StatusConflict)
+	if slotData.Status != "review" {
+		http.Error(w, "Сначала возьмите кандидата на знакомство", http.StatusConflict)
 		return
 	}
 
@@ -91,7 +90,7 @@ func ApproveApplication(w http.ResponseWriter, r *http.Request) {
 
 	// Отвечаем после закрытия слота
 	res := models.ApplicationResponse{
-		Message: "Заявка принята, разработчик назначен на слот",
+		Message: "Исполнитель назначен. Набор закрыт.",
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

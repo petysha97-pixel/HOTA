@@ -103,6 +103,15 @@ func main() {
 	// ===== Заявки на слоты =====
 	mux.Handle("POST /slot/{id}/apply", auth(slotHAND.ApplicationsSlot))
 	mux.Handle("GET /slot/{id}/applications", auth(slotHAND.GetSlotApplications))
+
+	// Приглашаем разработчика на свободный слот.
+	mux.Handle("POST /slot/{id}/invite/{userID}", auth(slotHAND.InviteDeveloper))
+
+	// Входящие приглашения и ответы кандидата.
+	mux.Handle("GET /inbox", auth(slotHAND.GetInbox))
+	mux.Handle("POST /application/{id}/accept", auth(slotHAND.AcceptInvite))
+	mux.Handle("POST /application/{id}/decline", auth(slotHAND.DeclineInvite))
+	mux.Handle("POST /notifications/read", auth(slotHAND.ReadNotifications))
 	mux.Handle("PUT /slot/{id}/approve/{userID}", auth(slotHAND.ApproveApplication))
 	mux.Handle("PATCH /slot/{id}/approve/{userID}", auth(slotHAND.ApproveApplication))
 

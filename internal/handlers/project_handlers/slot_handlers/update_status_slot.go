@@ -6,6 +6,7 @@ import (
 	slotRepo "HOTA/internal/repositories/project/slot"
 	"HOTA/internal/service"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 )
@@ -92,7 +93,12 @@ func UpdateStatusSlot(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Нельзя закрыть слот: нет принятой заявки", http.StatusConflict)
 			return
 		}
-
+	case "review":
+		// Возвращаем кандидата в очередь и открываем слот.
+		if body.Status != "open" {
+			http.Error(w, "Из review можно вернуться в open", http.StatusConflict)
+			return
+		}
 	case "close":
 		if body.Status == "open" {
 			// переоткрытие всегда, принятую заявку снимаем
@@ -115,17 +121,12 @@ func UpdateStatusSlot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// при переоткрытии снимаем принятую заявку
-	if slotData.Status == "close" && body.Status == "open" {
-		err = slotRepo.ResetApprovedApplication(slotData.ID)
-		if err != nil {
-			http.Error(w, "Ошибка снятия заявки", http.StatusInternalServerError)
-			return
-		}
+	// Сохраняем новый статус. При переоткрытии снимаем исполнителя.
+	err = slotRepo.UpdateSlotByID(slotData.ID, userID, slotData.Status, body.Status)
+	if errors.Is(err, slotRepo.ErrSlotStatusConflict) {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
 	}
-
-	// обновляем статус в БД
-	bodySlot2, err := slotRepo.UpdateSlotByID(slotData.ID, body.Status)
 	if err != nil {
 		http.Error(w, "Ошибка обновления статуса", http.StatusInternalServerError)
 		return
@@ -134,7 +135,7 @@ func UpdateStatusSlot(w http.ResponseWriter, r *http.Request) {
 	// ответ
 	res := models.UpdateStatusRoom{
 		Message: "Статус обновлён",
-		Status:  bodySlot2.Status,
+		Status:  body.Status,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

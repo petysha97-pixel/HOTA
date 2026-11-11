@@ -5,6 +5,8 @@ import (
 )
 
 type AplicationSlot struct {
+	// Отмечаем разработчика, который принял приглашение на этот слот.
+	Invited bool      `json:"invited"`
 	ID      int       `json:"id"`
 	SlotID  int       `json:"slotID"`
 	UserID  int       `json:"userID"`
