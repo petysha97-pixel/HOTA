@@ -5,6 +5,7 @@ import (
 	projectHAND "HOTA/internal/handlers/project_handlers"
 	slotHAND "HOTA/internal/handlers/project_handlers/slot_handlers"
 	searchHAND "HOTA/internal/handlers/project_handlers/slot_handlers/search_handlers"
+	shatWC "HOTA/internal/handlers/webcoket"
 	"HOTA/internal/models"
 	"HOTA/internal/service"
 	"database/sql"
@@ -91,7 +92,6 @@ func main() {
 
 	// поиск кандидатов под слот
 	mux.Handle("GET /slot/{id}/candidates", auth(searchHAND.SearchCandidates))
-	
 
 	// ===== Слоты =====
 	mux.Handle("POST /project/{id}/slot", auth(slotHAND.CreateSlotInProject))
@@ -105,9 +105,17 @@ func main() {
 	mux.Handle("GET /slot/{id}/applications", auth(slotHAND.GetSlotApplications))
 	mux.Handle("PUT /slot/{id}/approve/{userID}", auth(slotHAND.ApproveApplication))
 	mux.Handle("PATCH /slot/{id}/approve/{userID}", auth(slotHAND.ApproveApplication))
+
+	// Знакомство кандидата на слоте
+	mux.Handle("POST /slot/{id}/review/{userID}", auth(slotHAND.ReviewApplication))
+
 	mux.Handle("PUT /slot/{id}/reject/{userID}", auth(slotHAND.RejectApplication))
 	mux.Handle("PATCH /slot/{id}/reject/{userID}", auth(slotHAND.RejectApplication))
 	mux.Handle("DELETE /slot/{id}/member", auth(slotHAND.RemoveSlotMember))
+
+	//ручка, кторая держит соединение
+	// mux.Handle("GET /chats", auth(http.HandlerFunc(shatWC.Chat)))
+	mux.HandleFunc("GET /chats", shatWC.Chat)
 
 	fmt.Println("Сервер запущен: 8080")
 	if err := http.ListenAndServe(":8080", service.CORSMiddleware(mux)); err != nil {
